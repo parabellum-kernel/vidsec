@@ -5,10 +5,10 @@
     .fingerprint = 0xd659431e14e4c6b2,
     .dependencies = .{
         .flowdata_sdk = .{
-            .path = "../parabellum-sdk",
+            .path = "../sdk",
         },
         .flowdata_libs = .{
-            .path = "../parabellum-libs",
+            .path = "../libs",
         },
     },
     .paths = .{
