@@ -176,7 +176,7 @@ const required_plugins = [_]abi.PluginRequirement_ABI{
 
 pub const manifest = abi.defineManifestWithRequires(
     "analyzer",
-    .{ .major = 2, .minor = 0, .patch = 0 },
+    .{ .major = 1, .minor = 0, .patch = 0 },
     &tasks,
     &required_plugins,
 );

@@ -1,0 +1,42 @@
+name: Release Vidsec Plugin
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  ZIG_VERSION: "0.17.1"
+
+jobs:
+  build-and-release:
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_suffix: linux-x86_64
+            lib_ext: so
+          - os: macos-14
+            asset_suffix: macos-aarch64
+            lib_ext: dylib
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ vars.ZIG_VERSION || env.ZIG_VERSION }}
+
+      - name: Build release artifacts
+        run: |
+          zig build -Doptimize=ReleaseSafe
+          mkdir -p dist
+          cp zig-out/lib/libanalyzer.${{ matrix.lib_ext }} dist/libanalyzer-${{ matrix.asset_suffix }}.${{ matrix.lib_ext }}
+
+      - name: Publish assets to vidsec Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

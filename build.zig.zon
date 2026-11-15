@@ -1,6 +1,6 @@
 .{
     .name = .vidsec,
-    .version = "2.0.0",
+    .version = "1.0.0",
     .minimum_zig_version = "0.17.1",
     .fingerprint = 0xd659431e14e4c6b2,
     .dependencies = .{

@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const host_lib_dir = b.option([]const u8, "host-lib-dir", "Directory containing precompiled libparabellum_host");
 
-    const vidsec_version = std.SemanticVersion{ .major = 2, .minor = 0, .patch = 0 };
+    const vidsec_version = std.SemanticVersion{ .major = 1, .minor = 0, .patch = 0 };
 
     const sdk_dep = b.dependency("parabellum_sdk", .{
         .target = target,
