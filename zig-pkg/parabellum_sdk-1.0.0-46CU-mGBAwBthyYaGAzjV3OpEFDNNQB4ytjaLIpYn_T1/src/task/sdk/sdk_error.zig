@@ -1,0 +1,16 @@
+pub const SdkError = error{
+    OutOfBounds,
+    InvalidArgument,
+    NotFound,
+    IoError,
+    DbConstraintError,
+    PermissionDenied,
+    OutOfMemory,
+    NetworkPolicyDenied,
+    NetworkRateLimited,
+    NetworkAcquireTimeout,
+    NetworkUpstreamError,
+    TypeMismatch,
+    InvalidOperation,
+    UnexpectedHostError,
+};

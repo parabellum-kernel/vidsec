@@ -1,0 +1,12 @@
+.{
+    .name = .parabellum_sdk,
+    .version = "1.0.0",
+    .minimum_zig_version = "0.17.1",
+    .fingerprint = 0x9d4bec09fa94a0e3,
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
