@@ -168,13 +168,18 @@ const tasks = [_]abi.TaskDescriptor_ABI{
     }),
 };
 
-const manifest = abi.ModuleManifest_ABI{
-    .abi_version = abi.PARABELLUM_ABI_VERSION,
-    .module_name = "analyzer",
-    .module_version = .{ .major = 2, .minor = 0, .patch = 0 },
-    .tasks_ptr = &tasks,
-    .tasks_len = tasks.len,
+const required_plugins = [_]abi.PluginRequirement_ABI{
+    .{ .kind = .driver, .name = "memory" },
+    .{ .kind = .driver, .name = "sqlite" },
+    .{ .kind = .driver, .name = "file_store" },
 };
+
+pub const manifest = abi.defineManifestWithRequires(
+    "analyzer",
+    .{ .major = 2, .minor = 0, .patch = 0 },
+    &tasks,
+    &required_plugins,
+);
 
 comptime {
     @export(&manifest, .{ .name = "parabellum_module_manifest", .linkage = .strong });

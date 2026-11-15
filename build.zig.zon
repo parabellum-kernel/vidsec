@@ -6,7 +6,7 @@
     .dependencies = .{
         .parabellum_sdk = .{
             .url = "git+https://github.com/parabellum-kernel/sdk.git#v1.0.0",
-            .hash = "parabellum_sdk-1.0.0-46CU-mGBAwBthyYaGAzjV3OpEFDNNQB4ytjaLIpYn_T1",
+            .hash = "parabellum_sdk-1.0.0-46CU-l2KAwD9QljkXdHuEy93CfRB5Xv8rE7l49x75qSA",
         },
         .parabellum_libs = .{
             .url = "git+https://github.com/parabellum-kernel/lib.git#v1.0.0",

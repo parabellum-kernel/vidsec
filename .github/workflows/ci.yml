@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  ZIG_VERSION: "0.17.1"
+  PARABELLUM_SDK_VERSION: "v1.0.0"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ vars.ZIG_VERSION || env.ZIG_VERSION }}
+
+      - name: Build & Unit Tests
+        run: |
+          zig build
+          zig build test
+
+      - name: Download precompiled libparabellum_host
+        run: |
+          mkdir -p .host-lib
+          curl -fsSL -o .host-lib/libparabellum_host.so \
+            "https://github.com/parabellum-kernel/sdk/releases/download/${{ env.PARABELLUM_SDK_VERSION }}/libparabellum_host-linux-x86_64.so"
+
+      - name: Tier 2 Host E2E Tests
+        run: zig build test-e2e -Dhost-lib-dir=.host-lib
