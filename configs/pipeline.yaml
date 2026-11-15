@@ -1,0 +1,262 @@
+version: 2
+
+# =============================================================================
+# VidSec Video Security & Forensics Pipeline (v2)
+# 6-Stage Pure Dissection & Declarative Analysis Pipeline:
+#   Stage 0  : Atomic Pre-Triage & Gatekeeper (evaluate_triage -> QuarantineOrder)
+#   Stage 1a : Pure Format-Specific Dissectors (zero policy findings)
+#   Stage 1b : Format-Specific Structural Checks + Inline CVE Field Assertions
+#   Stage 1c : Pure Universal IR Lowering (6 canonical media_ir tables)
+#   Stage 2  : Modular Format-Agnostic IR Rules (R02, R04-R10)
+#   Stage 3  : CDR Subscribers & Quarantine Sink (apply_truncate, apply_zero_out, apply_quarantine)
+# =============================================================================
+
+runtime:
+  workers: auto
+  scheduler: dag
+  routing: type_driven
+  max_activations_per_node: 3
+  max_inflight_bytes: 512MiB
+  retain_all: false
+
+datasources:
+  pipeline_memory:
+    driver: memory
+    role: duplex
+
+  audit_db:
+    driver: sqlite
+    role: duplex
+    path: "${VIDSEC_DB_PATH:-./vidsec_state.db}"
+    schema: "${VIDSEC_SCHEMA_PATH:-./configs/schemas.yaml}"
+
+  artifacts:
+    driver: file_store
+    role: sink
+    directory: "./artifacts/"
+
+  quarantine:
+    driver: file_store
+    role: sink
+    directory: "./quarantine/"
+
+modules:
+  analyzer:
+    path: "./zig-out/lib/libanalyzer.so"
+
+imports:
+  - pipelines/structure_checks.yaml
+  - pipelines/cve_mp4.yaml
+  - pipelines/cve_mkv.yaml
+  - pipelines/cve_avi.yaml
+  - pipelines/forensics_ir.yaml
+
+pipelines:
+  main:
+    steps:
+      # -----------------------------------------------------------------------
+      # STAGE 0: Atomic Pre-Triage & Gatekeeper
+      # -----------------------------------------------------------------------
+      - id: stage0_size
+        uses: analyzer/check_file_size
+        params:
+          min_file_size_bytes: 8
+          max_file_size_mb: 4096
+        outputs:
+          size_check:
+            datasource: pipeline_memory
+
+      - id: stage0_magic
+        uses: analyzer/detect_magic
+        where: "size_valid == true"
+        outputs:
+          magic_info:
+            datasource: pipeline_memory
+
+      - id: stage0_ext
+        uses: analyzer/check_extension
+        where: "is_video == true and is_hostile == false"
+        params:
+          strict_extension: true
+        outputs:
+          extension_check:
+            datasource: pipeline_memory
+
+      - id: stage0_head_exec
+        uses: analyzer/scan_head_executables
+        where: "size_valid == true"
+        outputs:
+          head_exec_scan:
+            datasource: pipeline_memory
+
+      - id: stage0_head_scripts
+        uses: analyzer/scan_head_scripts
+        where: "size_valid == true"
+        outputs:
+          head_script_scan:
+            datasource: pipeline_memory
+
+      - id: stage0_tail_arch
+        uses: analyzer/scan_tail_archives
+        where: "size_valid == true"
+        outputs:
+          tail_arch_scan:
+            datasource: pipeline_memory
+
+      - id: stage0_mid_entropy
+        uses: analyzer/measure_mid_entropy
+        where: "size_valid == true"
+        params:
+          min_mid_entropy: 5.5
+        outputs:
+          mid_entropy_stats:
+            datasource: pipeline_memory
+
+      - id: stage0_evaluate_triage
+        uses: analyzer/evaluate_triage
+        outputs:
+          triage_verdict:
+            datasource: pipeline_memory
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      # -----------------------------------------------------------------------
+      # STAGE 1a: Pure Format-Specific Dissectors (zero audit_findings)
+      # -----------------------------------------------------------------------
+      - id: dissect_isobmff
+        uses: analyzer/dissect_isobmff
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        outputs:
+          isobmff_triage:
+            datasource: pipeline_memory
+          isobmff_boxes:
+            datasource: pipeline_memory
+
+      - id: dissect_mp4_atoms
+        uses: analyzer/dissect_mp4_atoms
+        where: "triage_passed == true and detected_family == 'isobmff' and isobmff_valid == true"
+        outputs:
+          mp4_atoms_summary:
+            datasource: pipeline_memory
+          mp4_tracks:
+            datasource: audit_db
+          mp4_table_measurements:
+            datasource: pipeline_memory
+          mp4_codec_headers:
+            datasource: pipeline_memory
+
+      - id: dissect_ebml
+        uses: analyzer/dissect_ebml
+        where: "triage_passed == true and detected_family == 'ebml'"
+        outputs:
+          ebml_triage:
+            datasource: pipeline_memory
+          ebml_elements:
+            datasource: pipeline_memory
+
+      - id: dissect_mkv_structures
+        uses: analyzer/dissect_mkv_structures
+        where: "triage_passed == true and detected_family == 'ebml' and ebml_valid == true"
+        outputs:
+          mkv_structures_summary:
+            datasource: pipeline_memory
+          mkv_tracks:
+            datasource: pipeline_memory
+          mkv_cues:
+            datasource: pipeline_memory
+          mkv_lacing_anomalies:
+            datasource: pipeline_memory
+
+      - id: dissect_riff
+        uses: analyzer/dissect_riff
+        where: "triage_passed == true and detected_family == 'riff'"
+        outputs:
+          riff_triage:
+            datasource: pipeline_memory
+          riff_chunks:
+            datasource: pipeline_memory
+          avi_stream_headers:
+            datasource: pipeline_memory
+
+      # -----------------------------------------------------------------------
+      # STAGE 1c: Pure Universal IR Lowering (zero audit_findings)
+      # -----------------------------------------------------------------------
+      - id: lower_mp4
+        uses: analyzer/lower_mp4_container
+        where: "triage_passed == true and detected_family == 'isobmff' and isobmff_valid == true and atoms_valid == true"
+        outputs:
+          container_metadata:
+            datasource: audit_db
+          ir_regions:
+            datasource: pipeline_memory
+          ir_sample_runs:
+            datasource: pipeline_memory
+          ir_codec_configs:
+            datasource: pipeline_memory
+          ir_attachments:
+            datasource: pipeline_memory
+          ir_external_refs:
+            datasource: pipeline_memory
+
+      - id: lower_mkv
+        uses: analyzer/lower_ebml_container
+        where: "triage_passed == true and detected_family == 'ebml' and ebml_valid == true and mkv_valid == true"
+        outputs:
+          container_metadata:
+            datasource: audit_db
+          ir_regions:
+            datasource: pipeline_memory
+          ir_sample_runs:
+            datasource: pipeline_memory
+          ir_codec_configs:
+            datasource: pipeline_memory
+          ir_attachments:
+            datasource: pipeline_memory
+          ir_external_refs:
+            datasource: pipeline_memory
+
+      - id: lower_riff
+        uses: analyzer/lower_riff_container
+        where: "triage_passed == true and detected_family == 'riff' and riff_valid == true"
+        outputs:
+          container_metadata:
+            datasource: audit_db
+          ir_regions:
+            datasource: pipeline_memory
+          ir_sample_runs:
+            datasource: pipeline_memory
+          ir_codec_configs:
+            datasource: pipeline_memory
+          ir_attachments:
+            datasource: pipeline_memory
+          ir_external_refs:
+            datasource: pipeline_memory
+
+      # -----------------------------------------------------------------------
+      # STAGE 3: CDR Subscribers & Quarantine Sink (ARCH-036)
+      # -----------------------------------------------------------------------
+      - id: sanitize_truncate
+        uses: analyzer/apply_truncate
+        outputs:
+          stream:
+            datasource: artifacts
+          remediation_outcomes:
+            datasource: audit_db
+
+      - id: sanitize_zero_out
+        uses: analyzer/apply_zero_out
+        outputs:
+          stream:
+            datasource: artifacts
+          remediation_outcomes:
+            datasource: audit_db
+
+      - id: execute_quarantine
+        uses: analyzer/apply_quarantine
+        outputs:
+          stream:
+            datasource: quarantine
+          remediation_outcomes:
+            datasource: audit_db

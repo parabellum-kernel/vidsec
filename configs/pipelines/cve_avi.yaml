@@ -1,0 +1,69 @@
+pipelines:
+  cve_avi:
+    routing: type_driven
+    enabled: true
+    steps:
+      - id: cve_2021_38114_avi_strh_zero_scale
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'riff'"
+        params:
+          target_tag: "strh"
+          field_offset: 20
+          field_kind: "u32le"
+          op: "gt"
+          expected_min: 0
+          rule_id: "cve_2021_38114_avi_strh_zero_scale"
+          severity: 3
+          on_fail: "patch"
+          patch_value: 1
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          patch_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2021_38114_avi_strf_palette
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'riff'"
+        params:
+          target_tag: "strf"
+          min_payload_size: 40
+          field_offset: 32
+          field_kind: "u32le"
+          op: "le"
+          expected_max: 256
+          rule_id: "cve_2021_38114_avi_strf_palette"
+          severity: 4
+          on_fail: "clamp"
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          patch_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2017_9992_dup_avi_strf
+        uses: analyzer/check_region_cardinality
+        where: "triage_passed == true and detected_family == 'riff'"
+        params:
+          parent_tag: "strl"
+          child_tag: "strf"
+          max_count: 1
+          rule_id: "cve_2017_9992_dup_avi_strf"
+          severity: 4
+          on_fail: "tombstone_excess"
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+

@@ -1,0 +1,102 @@
+pipelines:
+  forensics_ir:
+    routing: type_driven
+    enabled: true
+    steps:
+      - id: analyze_topology
+        uses: analyzer/analyze_topology
+        outputs:
+          ir_unreferenced_slack:
+            datasource: pipeline_memory
+          audit_findings:
+            datasource: audit_db
+
+      - id: check_r02_trailing_overlay
+        uses: analyzer/check_r02_trailing_overlay
+        params:
+          entropy_threshold: 7.2
+          allow_truncate: true
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          truncate_orders:
+            datasource: pipeline_memory
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      - id: check_r04_sample_bounds
+        uses: analyzer/check_r04_sample_bounds
+        params:
+          quarantine_on_fail: true
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      - id: check_r05_external_refs
+        uses: analyzer/check_r05_external_refs
+        params:
+          quarantine_on_fail: true
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      - id: check_r06_embedded_attachments
+        uses: analyzer/check_r06_embedded_attachments
+        params:
+          quarantine_on_fail: true
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      - id: check_r07_suspicious_padding
+        uses: analyzer/check_r07_suspicious_padding
+        concurrency: max
+        params:
+          entropy_threshold: 7.2
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          zero_out_orders:
+            datasource: pipeline_memory
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      - id: check_r08_unreferenced_slack
+        uses: analyzer/check_r08_unreferenced_slack
+        concurrency: max
+        params:
+          entropy_threshold: 7.2
+          large_slack_bytes: 4096
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          zero_out_orders:
+            datasource: pipeline_memory
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      - id: check_r09_codec_inconsistencies
+        uses: analyzer/check_r09_codec_inconsistencies
+        params:
+          max_dimension: 16384
+        outputs:
+          audit_findings:
+            datasource: audit_db
+
+      - id: check_r10_sample_overlaps
+        uses: analyzer/check_r10_sample_overlaps
+        params:
+          max_amplification_ratio: 1.0
+          quarantine_on_fail: true
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+

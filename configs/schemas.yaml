@@ -1,0 +1,371 @@
+version: 2
+
+schemas:
+  # 0. Canonical Lookup Tables & Reporting Views (`catalog`)
+  catalog:
+    enum_container_format:
+      columns:
+        id:           { type: int64, pk: true }
+        code:         { type: text, unique: true }
+        display_name: { type: text }
+        default_mime: { type: text }
+      seeds:
+        - { id: 0, code: unknown, display_name: "Unknown / Unrecognized Format", default_mime: "application/octet-stream" }
+        - { id: 1, code: isobmff, display_name: "ISO Base Media File Format (MP4/MOV)", default_mime: "video/mp4" }
+        - { id: 2, code: ebml, display_name: "Extensible Binary Meta Language (MKV/WebM)", default_mime: "video/x-matroska" }
+        - { id: 3, code: riff, display_name: "Resource Interchange File Format (AVI/WAV)", default_mime: "video/x-msvideo" }
+
+    enum_severity:
+      columns:
+        level:        { type: int64, pk: true }
+        code:         { type: text, unique: true }
+        badge_color:  { type: text }
+        description:  { type: text }
+      seeds:
+        - { level: 0, code: INFO, badge_color: "#3B82F6", description: "Informational metric or clean indicator" }
+        - { level: 1, code: LOW, badge_color: "#10B981", description: "Minor structural anomaly without immediate threat" }
+        - { level: 2, code: MEDIUM, badge_color: "#F59E0B", description: "Suspicious unreferenced payload or slack data" }
+        - { level: 3, code: HIGH, badge_color: "#EF4444", description: "Dangerous polyglot, trailing overlay, or format tampering" }
+        - { level: 4, code: CRITICAL, badge_color: "#7F1D1D", description: "Confirmed exploit, corrupted header, or severe threat" }
+
+    enum_verdict:
+      columns:
+        id:          { type: int64, pk: true }
+        code:        { type: text, unique: true }
+        description: { type: text }
+      seeds:
+        - { id: 0, code: PASS, description: "Media file passed triage validation" }
+        - { id: 1, code: FLAGGED, description: "Media file triggered security or structural warnings" }
+        - { id: 2, code: DROP, description: "Media file violates security policies and should be rejected" }
+
+    enum_region_role:
+      columns:
+        id:          { type: int64, pk: true }
+        code:        { type: text, unique: true }
+        description: { type: text }
+      seeds:
+        - { id: 0, code: unknown, description: "Uncategorized container structure" }
+        - { id: 1, code: container, description: "Top-level or nested container structural header" }
+        - { id: 2, code: media_data, description: "Raw elementary audio/video/subtitle stream payload" }
+        - { id: 3, code: padding, description: "Safe zero or filler padding byte sequence" }
+        - { id: 4, code: sample_table, description: "Frame indexing and sample offset/chunk metadata" }
+        - { id: 5, code: codec_config, description: "Decoder configuration record (AVCC, HEVC, Vorbis)" }
+        - { id: 6, code: metadata, description: "Tags, chapters, user comments, or editorial metadata" }
+        - { id: 7, code: attachment, description: "Embedded auxiliary file or font attachment" }
+        - { id: 8, code: external_ref, description: "URL or external file path reference" }
+
+  # 1. Pre-Triage Domain (Format Family, Magic Spoofing, Entropy & Polyglot Gatekeeper)
+  triage:
+    file_triage:
+      columns:
+        file_size:          { type: int64 }
+        detected_family:    { type: text }
+        true_magic_kind:    { type: int64 }
+        true_magic_name:    { type: text }
+        exceeds_size_limit: { type: bool, default: false }
+        verdict:            { type: int64, default: 0, ref: enum_verdict.id }
+        identified_format:  { type: text, default: "'unknown'" }
+        mime_type:          { type: text, default: "'application/octet-stream'" }
+        extension_match:    { type: bool, default: true }
+        mid_entropy:        { type: float64, default: 0.0 }
+        head_size_read:     { type: int64, default: 0 }
+        tail_size_read:     { type: int64, default: 0 }
+        flags_csv:          { type: text, default: "''" }
+        suspicious_string:  { type: text, nullable: true }
+        zip_eocd_offset:    { type: int64, nullable: true }
+
+    isobmff_triage:
+      columns:
+        box_count:                 { type: int64 }
+        has_ftyp:                  { type: bool, default: true }
+        has_moov:                  { type: bool, default: true }
+        has_mdat:                  { type: bool, default: true }
+        highest_root_end:          { type: int64 }
+        has_overflow_or_truncated: { type: bool, default: false }
+        isobmff_valid:             { type: bool, default: true }
+
+    isobmff_boxes:
+      columns:
+        region_id:        { type: int64, pk: true }
+        parent_region_id: { type: int64, nullable: true }
+        depth:            { type: int64 }
+        fourcc:           { type: text }
+        path:             { type: text }
+        role:             { type: text }
+        header_offset:    { type: int64 }
+        payload_offset:   { type: int64 }
+        declared_size:    { type: int64 }
+        available_bytes:  { type: int64 }
+        is_truncated:     { type: bool, default: false }
+        is_overflow:      { type: bool, default: false }
+      indexes:
+        - fourcc
+        - role
+
+    mp4_atoms_summary:
+      columns:
+        track_count:          { type: int64 }
+        sample_run_count:     { type: int64 }
+        avcc_count:           { type: int64 }
+        hvcc_count:           { type: int64, default: 0 }
+        esds_count:           { type: int64 }
+        table_overflow_count: { type: int64 }
+        atoms_valid:          { type: bool, default: true }
+
+    mp4_table_measurements:
+      columns:
+        table_fourcc:       { type: text }
+        path:               { type: text }
+        entry_count:        { type: int64 }
+        entry_size:         { type: int64 }
+        claimed_bytes:      { type: int64 }
+        payload_size:       { type: int64 }
+        is_overflow:        { type: bool, default: false }
+        has_arith_overflow: { type: bool, default: false }
+
+    mp4_codec_headers:
+      columns:
+        track_id:              { type: int64 }
+        codec_tag:             { type: text }
+        kind:                  { type: text }
+        is_malformed:          { type: bool, default: false }
+        length_size_minus_one: { type: int64, default: 3 }
+        sps_count:             { type: int64, default: 0 }
+        pps_count:             { type: int64, default: 0 }
+        array_count:           { type: int64, default: 0 }
+        claimed_bytes:         { type: int64, default: 0 }
+        payload_size:          { type: int64, default: 0 }
+
+    mp4_tracks:
+      columns:
+        track_id:     { type: int64, pk: true }
+        handler_type: { type: text }
+        codec_fourcc: { type: text }
+        width:        { type: int64 }
+        height:       { type: int64 }
+        sample_count: { type: int64 }
+        has_avcc:     { type: bool, default: false }
+        has_esds:     { type: bool, default: false }
+      indexes:
+        - codec_fourcc
+
+    ebml_triage:
+      columns:
+        has_ebml_header:           { type: bool, default: true }
+        has_segment:               { type: bool, default: true }
+        doc_type:                  { type: text }
+        doc_type_version:          { type: int64 }
+        element_count:             { type: int64 }
+        cluster_count:             { type: int64 }
+        highest_root_end:          { type: int64 }
+        has_overflow_or_truncated: { type: bool, default: false }
+        ebml_valid:                { type: bool, default: true }
+
+    ebml_elements:
+      columns:
+        region_id:        { type: int64, pk: true }
+        parent_region_id: { type: int64, nullable: true }
+        depth:            { type: int64 }
+        ebml_id_hex:      { type: text }
+        path:             { type: text }
+        role:             { type: text }
+        header_offset:    { type: int64 }
+        payload_offset:   { type: int64 }
+        available_bytes:  { type: int64 }
+        is_truncated:     { type: bool, default: false }
+        is_overflow:      { type: bool, default: false }
+      indexes:
+        - ebml_id_hex
+        - role
+
+    mkv_structures_summary:
+      columns:
+        has_tracks:                 { type: bool, default: true }
+        track_count:                { type: int64 }
+        attachment_count:           { type: int64 }
+        cluster_count:              { type: int64 }
+        sample_run_count:           { type: int64 }
+        segment_payload_start:      { type: int64, default: 0 }
+        segment_end:                { type: int64, default: 0 }
+        header_ebml_max_size_length: { type: int64, default: 8 }
+        lacing_anomaly_count:       { type: int64, default: 0 }
+        mkv_valid:                  { type: bool, default: true }
+
+    mkv_cues:
+      columns:
+        cue_time:          { type: int64 }
+        track_number:      { type: int64 }
+        cluster_position:  { type: int64 }
+        in_segment_bounds: { type: bool, default: true }
+
+    mkv_lacing_anomalies:
+      columns:
+        offset:       { type: int64 }
+        lacing_kind:  { type: int64 }
+        frame_count:  { type: int64 }
+        payload_size: { type: int64 }
+
+    mkv_tracks:
+      columns:
+        track_number:       { type: int64, pk: true }
+        track_type:         { type: text }
+        codec_id:           { type: text }
+        pixel_width:        { type: int64 }
+        pixel_height:       { type: int64 }
+        codec_private_size: { type: int64 }
+      indexes:
+        - codec_id
+
+    riff_triage:
+      columns:
+        form_type:           { type: text }
+        file_size:           { type: int64, default: 0 }
+        root_size:           { type: int64 }
+        is_valid_root_magic: { type: bool, default: true }
+        chunk_count:         { type: int64 }
+        movi_bytes:          { type: int64 }
+        junk_bytes:          { type: int64 }
+        stream_count:        { type: int64 }
+        sample_run_count:    { type: int64 }
+        idx1_size:           { type: int64, default: 0 }
+        idx1_entry_count:    { type: int64, default: 0 }
+        highest_root_end:    { type: int64 }
+        riff_valid:          { type: bool, default: true }
+
+    avi_stream_headers:
+      columns:
+        stream_index:     { type: int64 }
+        fcc_type:         { type: text }
+        fcc_handler:      { type: text }
+        scale:            { type: int64 }
+        rate:             { type: int64 }
+        length:           { type: int64 }
+        strf_offset:      { type: int64 }
+        strf_size:        { type: int64 }
+        has_video:        { type: bool, default: false }
+        bi_size:          { type: int64, default: 0 }
+        width:            { type: int64, default: 0 }
+        height:           { type: int64, default: 0 }
+        bi_planes:        { type: int64, default: 0 }
+        bit_count:        { type: int64, default: 0 }
+        bi_size_image:    { type: int64, default: 0 }
+        bi_clr_used:      { type: int64, default: 0 }
+        dim_mul_overflow: { type: bool, default: false }
+
+    riff_chunks:
+      columns:
+        region_id:        { type: int64, pk: true }
+        parent_region_id: { type: int64, nullable: true }
+        depth:            { type: int64 }
+        fourcc:           { type: text }
+        path:             { type: text }
+        role:             { type: text }
+        header_offset:    { type: int64 }
+        payload_offset:   { type: int64 }
+        available_bytes:  { type: int64 }
+        is_truncated:     { type: bool, default: false }
+        is_overflow:      { type: bool, default: false }
+      indexes:
+        - fourcc
+        - role
+
+    region_field_results:
+      columns:
+        tag:        { type: text }
+        offset:     { type: int64 }
+        field_kind: { type: text }
+        u64_value:  { type: int64 }
+        text_value: { type: text }
+        in_bounds:  { type: bool, default: true }
+
+  # 2. Structural Intermediate Representation (`ir_core`)
+  ir_core:
+    container_metadata:
+      columns:
+        file_size:        { type: int64 }
+        detected_format:  { type: int64, ref: enum_container_format.id }
+        true_magic:       { type: int64 }
+        true_magic_name:  { type: text }
+        highest_root_end: { type: int64 }
+
+    ir_regions:
+      columns:
+        region_id:                { type: int64, pk: true }
+        parent_region_id:         { type: int64, nullable: true, ref: ir_regions.region_id }
+        tag_name:                 { type: text }
+        role:                     { type: text }
+        header_offset:            { type: int64 }
+        payload_offset:           { type: int64 }
+        effective_end_offset:     { type: int64 }
+        is_truncated_or_overflow: { type: bool, default: false }
+      indexes:
+        - role
+        - tag_name
+
+  # 3. Deep Media & Sample Table Intermediate Representation (`ir_deep`)
+  ir_deep:
+    ir_sample_runs:
+      columns:
+        run_id:       { type: int64, pk: true }
+        track_id:     { type: int64 }
+        start_offset: { type: int64 }
+        byte_length:  { type: int64 }
+        end_offset:   { type: int64 }
+        sample_count: { type: int64, default: 1 }
+      indexes:
+        - start_offset
+        - track_id
+
+    ir_unreferenced_slack:
+      columns:
+        slack_id:    { type: int64, pk: true }
+        region_tag:  { type: text }
+        file_offset: { type: int64 }
+        byte_length: { type: int64 }
+
+    ir_codec_configs:
+      columns:
+        config_id:       { type: int64, pk: true }
+        track_id:        { type: int64 }
+        codec_tag:       { type: text }
+        container_width: { type: int64 }
+        container_height: { type: int64 }
+        bitstream_width: { type: int64 }
+        bitstream_height: { type: int64 }
+        is_mismatch:     { type: bool, default: false }
+
+    ir_attachments:
+      columns:
+        attachment_id:  { type: int64, pk: true }
+        file_name:      { type: text }
+        mime_type:      { type: text }
+        payload_offset: { type: int64 }
+        payload_length: { type: int64 }
+
+    ir_external_refs:
+      columns:
+        ref_id:      { type: int64, pk: true }
+        track_id:    { type: int64 }
+        source_tag:  { type: text }
+        file_offset: { type: int64 }
+        target_url:  { type: text }
+
+  # 4. Security Audit & Forensic Findings (`audit`)
+  audit:
+    audit_findings:
+      columns:
+        finding_id:         { type: int64, pk: true }
+        rule_id:            { type: text }
+        severity:           { type: int64, ref: enum_severity.level }
+        file_offset:        { type: int64 }
+        byte_length:        { type: int64, default: 0 }
+        end_offset:         { type: int64, default: 0 }
+        region_tag:         { type: text, nullable: true }
+        measured_value:     { type: float64, nullable: true }
+        message:            { type: text, nullable: true }
+        is_remediated:      { type: bool, default: false }
+        remediation_action: { type: text, default: "UNRESOLVED" }
+      indexes:
+        - rule_id
+        - severity
+        - is_remediated

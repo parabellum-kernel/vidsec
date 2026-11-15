@@ -1,0 +1,22 @@
+.{
+    .name = .vidsec,
+    .version = "2.0.0",
+    .minimum_zig_version = "0.17.1",
+    .fingerprint = 0xd659431e14e4c6b2,
+    .dependencies = .{
+        .flowdata_sdk = .{
+            .path = "../flowdata-sdk",
+        },
+        .flowdata_libs = .{
+            .path = "../flowdata-libs",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "configs",
+        "tests",
+        "scripts",
+    },
+}

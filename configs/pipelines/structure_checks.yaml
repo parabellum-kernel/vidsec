@@ -1,0 +1,32 @@
+pipelines:
+  structure_checks:
+    routing: type_driven
+    enabled: true
+    steps:
+      - id: check_mp4_structure
+        uses: analyzer/check_mp4_structure
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        outputs:
+          mp4_structure_valid:
+            datasource: pipeline_memory
+          audit_findings:
+            datasource: audit_db
+
+      - id: check_mkv_structure
+        uses: analyzer/check_mkv_structure
+        where: "triage_passed == true and detected_family == 'ebml'"
+        outputs:
+          mkv_structure_valid:
+            datasource: pipeline_memory
+          audit_findings:
+            datasource: audit_db
+
+      - id: check_avi_structure
+        uses: analyzer/check_avi_structure
+        where: "triage_passed == true and detected_family == 'riff'"
+        outputs:
+          avi_structure_valid:
+            datasource: pipeline_memory
+          audit_findings:
+            datasource: audit_db
+

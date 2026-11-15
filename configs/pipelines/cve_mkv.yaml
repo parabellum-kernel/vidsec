@@ -1,0 +1,60 @@
+pipelines:
+  cve_mkv:
+    routing: type_driven
+    enabled: true
+    steps:
+      - id: cve_2019_13615_ebml_max_size_len
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'ebml'"
+        params:
+          target_tag: "0x42f3"
+          field_offset: 0
+          field_kind: "u8"
+          op: "le"
+          expected_max: 8
+          rule_id: "cve_2019_13615_ebml_max_size_len"
+          severity: 3
+          on_fail: "clamp"
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          patch_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2020_22019_dup_codec_private
+        uses: analyzer/check_region_cardinality
+        where: "triage_passed == true and detected_family == 'ebml'"
+        params:
+          parent_tag: "0xae"
+          child_tag: "0x63a2"
+          max_count: 1
+          rule_id: "cve_2020_22019_dup_codec_private"
+          severity: 4
+          on_fail: "tombstone_excess"
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2016_1621_ebml_lacing
+        uses: analyzer/inspect_ebml_lacing
+        where: "triage_passed == true and detected_family == 'ebml'"
+        params:
+          rule_id: "cve_2016_1621_ebml_lacing"
+          severity: 4
+          on_fail: "tombstone"
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+

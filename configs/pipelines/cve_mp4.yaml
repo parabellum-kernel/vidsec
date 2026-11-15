@@ -1,0 +1,271 @@
+pipelines:
+  cve_mp4:
+    routing: type_driven
+    enabled: true
+    steps:
+      # --- Class I: Scalar & Table-Stride Overflows ---
+      - id: cve_2015_1538_stagefright_stsc
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "stsc"
+          field_offset: 4
+          field_kind: "u32be"
+          op: "stride_fits"
+          stride: 12
+          header_bytes: 8
+          rule_id: "cve_2015_1538_stagefright_stsc"
+          severity: 4
+          on_fail: "tombstone"
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2015_1539_stagefright_esds
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "esds"
+          field_kind: "payload_size"
+          op: "ge"
+          expected_min: 12
+          rule_id: "cve_2015_1539_stagefright_esds"
+          severity: 4
+          on_fail: "tombstone"
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2015_3824_stagefright_tx3g
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "tx3g"
+          field_kind: "payload_size"
+          op: "ge"
+          expected_min: 16
+          rule_id: "cve_2015_3824_stagefright_tx3g"
+          severity: 4
+          on_fail: "tombstone"
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2015_3829_covr_data_underflow
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "data"
+          target_path_contains: "covr"
+          from_header: true
+          field_offset: 0
+          field_kind: "u32be"
+          op: "ge"
+          expected_min: 8
+          rule_id: "cve_2015_3829_covr_data_underflow"
+          severity: 4
+          on_fail: "tombstone"
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2018_19937_mdhd_zero_timescale
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "mdhd"
+          version_filter: 0
+          field_offset: 12
+          field_kind: "u32be"
+          op: "gt"
+          expected_min: 0
+          rule_id: "cve_2018_19937_mdhd_zero_timescale"
+          severity: 3
+          quarantine_on_fail: true
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2022_22675_apple_avcc
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "avcC"
+          field_offset: 0
+          field_kind: "u8"
+          op: "eq"
+          expected_min: 1
+          expected_max: 1
+          rule_id: "cve_2022_22675_apple_avcc"
+          severity: 3
+          quarantine_on_fail: true
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2022_3266_tkhd_width
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "tkhd"
+          version_filter: 0
+          field_offset: 76
+          field_kind: "u16be"
+          op: "le"
+          expected_max: 16384
+          rule_id: "cve_2022_3266_tkhd_width"
+          severity: 3
+          quarantine_on_fail: true
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      - id: cve_mp4_stsz_sample_size_bounds
+        uses: analyzer/inspect_region_field
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "stsz"
+          field_offset: 8
+          field_kind: "u32be"
+          op: "stride_fits"
+          stride: 4
+          header_bytes: 12
+          rule_id: "cve_mp4_stsz_sample_size_bounds"
+          severity: 4
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+
+      # --- Class II: Sub-Byte Bitfields & Vendor UUID Payloads ---
+      - id: cve_2015_3864_stagefright_uuid
+        uses: analyzer/inspect_region_bits
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "uuid"
+          match_hex_offset: 0
+          match_hex_prefix: "00112233445566778899aabbccddeeff"
+          byte_offset: 16
+          byte_width: 4
+          endian: "big"
+          bit_mask: 0xFFFFFFFF
+          bit_shift: 0
+          op: "fits_available"
+          rule_id: "cve_2015_3864_stagefright_uuid"
+          severity: 4
+          on_fail: "tombstone"
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+
+      - id: cve_2022_22675_apple_avcc_nalu_len
+        uses: analyzer/inspect_region_bits
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          target_tag: "avcC"
+          byte_offset: 4
+          byte_width: 1
+          bit_mask: 0x03
+          bit_shift: 0
+          op: "bit_forbidden"
+          forbidden_value: 2
+          rule_id: "cve_2022_22675_apple_avcc_nalu_len"
+          severity: 4
+          on_fail: "tombstone"
+        outputs:
+          region_field_results:
+            datasource: audit_db
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+
+      # --- Class III: Tree Cardinality & Singleton Duplication ---
+      - id: cve_2018_13300_dup_stsc
+        uses: analyzer/check_region_cardinality
+        where: "triage_passed == true and detected_family == 'isobmff'"
+        params:
+          parent_tag: "stbl"
+          child_tag: "stsc"
+          max_count: 1
+          rule_id: "cve_2018_13300_dup_stsc"
+          severity: 4
+          on_fail: "tombstone_excess"
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          tombstone_orders:
+            datasource: pipeline_memory
+
+      # --- Class IV: Bitstream Parameter Sets (Exp-Golomb) ---
+      - id: cve_2021_30860_codec_bitstream_sps
+        uses: analyzer/inspect_codec_bitstream
+        where: "triage_passed == true and (detected_family == 'isobmff' or detected_family == 'ebml')"
+        params:
+          max_sps_id: 31
+          max_pps_id: 255
+          max_ref_frames: 16
+          max_chroma_format_idc: 3
+          max_bit_depth_minus8: 6
+          max_log2_max_frame_num_minus4: 12
+          max_dimension: 16384
+          rule_id: "cve_2021_30860_codec_bitstream_sps"
+          severity: 4
+          on_fail: "sync_container_dimensions"
+        outputs:
+          audit_findings:
+            datasource: audit_db
+          quarantine_orders:
+            datasource: pipeline_memory
+          patch_orders:
+            datasource: pipeline_memory
+
