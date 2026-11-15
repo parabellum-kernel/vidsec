@@ -1,4 +1,4 @@
-const abi = @import("flowdata_abi");
+const abi = @import("parabellum_abi");
 const container = @import("container.zig").VidsecPluginContainer;
 const tasks_mod = @import("tasks/mod.zig");
 
@@ -169,7 +169,7 @@ const tasks = [_]abi.TaskDescriptor_ABI{
 };
 
 const manifest = abi.ModuleManifest_ABI{
-    .abi_version = abi.FLOWDATA_ABI_VERSION,
+    .abi_version = abi.PARABELLUM_ABI_VERSION,
     .module_name = "analyzer",
     .module_version = .{ .major = 2, .minor = 0, .patch = 0 },
     .tasks_ptr = &tasks,
@@ -177,5 +177,5 @@ const manifest = abi.ModuleManifest_ABI{
 };
 
 comptime {
-    @export(&manifest, .{ .name = "flowdata_module_manifest", .linkage = .strong });
+    @export(&manifest, .{ .name = "parabellum_module_manifest", .linkage = .strong });
 }

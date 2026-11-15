@@ -1,6 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const abi = @import("flowdata_abi");
+const abi = @import("parabellum_abi");
 const isobmff = @import("isobmff");
 const riff = @import("riff");
 const media_ir = @import("media_ir");

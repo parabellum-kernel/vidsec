@@ -1,6 +1,6 @@
 const std = @import("std");
-const abi = @import("flowdata_abi");
-const flowdata = @import("flowdata");
+const abi = @import("parabellum_abi");
+const parabellum = @import("parabellum");
 const vidsec = @import("vidsec");
 const media_ir = vidsec.media_ir;
 
@@ -21,7 +21,7 @@ const SliceStreamHost = struct {
         self.vtable.stream_size = &streamSize;
         self.vtable.stream_read_at = &streamReadAt;
         self.ctx_abi = .{
-            .abi_version = abi.FLOWDATA_ABI_VERSION,
+            .abi_version = abi.PARABELLUM_ABI_VERSION,
             .host = &self.vtable,
             .opaque_host_state = &self,
         };
@@ -69,7 +69,7 @@ test "configs: schemas.yaml and pipeline.yaml parse cleanly" {
 
     const schemas_yaml = try std.Io.Dir.cwd().readFileAlloc(std.testing.io, "configs/schemas.yaml", alloc, .unlimited);
 
-    const catalog = try flowdata.yaml.parseSchemaCatalog(alloc, schemas_yaml, null);
+    const catalog = try parabellum.yaml.parseSchemaCatalog(alloc, schemas_yaml, null);
     try std.testing.expect(catalog.getTable("isobmff_triage") != null);
     try std.testing.expect(catalog.getTable("mp4_atoms_summary") != null);
     try std.testing.expect(catalog.getTable("ebml_triage") != null);
@@ -78,7 +78,7 @@ test "configs: schemas.yaml and pipeline.yaml parse cleanly" {
     try std.testing.expect(catalog.getTable("region_field_results") != null);
     try std.testing.expect(catalog.getTable("ir_sample_runs") != null);
 
-    const ast = try flowdata.yaml.loadPipelineAstFromFile(alloc, "configs/pipeline.yaml", .{});
+    const ast = try parabellum.yaml.loadPipelineAstFromFile(alloc, "configs/pipeline.yaml", .{});
     try std.testing.expect(ast.getPipeline("main") != null);
     try std.testing.expect(ast.getPipeline("structure_checks") != null);
     try std.testing.expect(ast.getPipeline("cve_mp4") != null);
@@ -86,7 +86,7 @@ test "configs: schemas.yaml and pipeline.yaml parse cleanly" {
     try std.testing.expect(ast.getPipeline("cve_avi") != null);
     try std.testing.expect(ast.getPipeline("forensics_ir") != null);
 
-    var fed_plan = try flowdata.engine.compileFederatedPlan(alloc, ast);
+    var fed_plan = try parabellum.engine.compileFederatedPlan(alloc, ast);
     defer fed_plan.deinit();
     try std.testing.expect(fed_plan.nodes.len >= 40);
 }
@@ -180,7 +180,7 @@ const StreamEmitHost = struct {
 
     fn ctx(self: *StreamEmitHost) abi.TaskContext {
         self.ctx_abi = .{
-            .abi_version = abi.FLOWDATA_ABI_VERSION,
+            .abi_version = abi.PARABELLUM_ABI_VERSION,
             .host = &self.vtable,
             .opaque_host_state = self,
         };
@@ -366,8 +366,8 @@ test "e2e: pipeline.yaml parses cleanly and wires all 4 CVE primitives + 6 stage
     defer arena.deinit();
     const alloc = arena.allocator();
 
-    const ast = try flowdata.yaml.loadPipelineAstFromFile(alloc, "configs/pipeline.yaml", .{});
-    var fed_plan = try flowdata.engine.compileFederatedPlan(alloc, ast);
+    const ast = try parabellum.yaml.loadPipelineAstFromFile(alloc, "configs/pipeline.yaml", .{});
+    var fed_plan = try parabellum.engine.compileFederatedPlan(alloc, ast);
     defer fed_plan.deinit();
 
     var has_field = false;
@@ -464,11 +464,11 @@ test "TASK-035d.4: Federated zero-redundancy parallel execution across main, str
         .tasks_len = tasks.len,
     };
 
-    var mod_reg = flowdata.ModuleRegistry.init(alloc);
+    var mod_reg = parabellum.ModuleRegistry.init(alloc);
     defer mod_reg.deinit();
     try mod_reg.registerStaticModule("analyzer", &manifest);
 
-    var repo_reg = flowdata.RepositoryRegistry.init(alloc);
+    var repo_reg = parabellum.RepositoryRegistry.init(alloc);
     defer repo_reg.deinit();
 
     const yaml_text =
@@ -501,12 +501,12 @@ test "TASK-035d.4: Federated zero-redundancy parallel execution across main, str
         \\        uses: analyzer/check_r02_overlay
     ;
 
-    const ast = try flowdata.yaml.loadPipelineAstFromYaml(alloc, yaml_text, .{});
-    var eng = flowdata.PipelineEngine.init(alloc, ast, &mod_reg, &repo_reg);
+    const ast = try parabellum.yaml.loadPipelineAstFromYaml(alloc, yaml_text, .{});
+    var eng = parabellum.PipelineEngine.init(alloc, ast, &mod_reg, &repo_reg);
     defer eng.deinit();
 
     const raw = RawMp4{ .bytes = "ftypmoovmdat" };
-    const summary = try eng.run(flowdata.dataflow.PayloadHandle.fromScalar(RawMp4, &raw));
+    const summary = try eng.run(parabellum.dataflow.PayloadHandle.fromScalar(RawMp4, &raw));
     try std.testing.expectEqual(@as(usize, 5), summary.steps_executed);
     try std.testing.expectEqual(@as(usize, 1), Counters.dissect_calls);
     try std.testing.expectEqual(@as(usize, 1), Counters.structure_calls);

@@ -1,6 +1,6 @@
 const std = @import("std");
-const abi = @import("flowdata_abi");
-const flowdata = @import("flowdata");
+const abi = @import("parabellum_abi");
+const parabellum = @import("parabellum");
 const vidsec = @import("vidsec");
 
 const apply_truncate = vidsec.tasks.apply_truncate;
@@ -34,7 +34,7 @@ const StreamEmitHost = struct {
 
     fn ctx(self: *StreamEmitHost) abi.TaskContext {
         self.ctx_abi = .{
-            .abi_version = abi.FLOWDATA_ABI_VERSION,
+            .abi_version = abi.PARABELLUM_ABI_VERSION,
             .host = &self.vtable,
             .opaque_host_state = self,
         };
@@ -226,7 +226,7 @@ test "ARCH-036 TASK-036.6: End-to-end remediation stream swap, epoch re-verifica
         .tasks_len = tasks.len,
     };
 
-    var mod_reg = flowdata.ModuleRegistry.init(alloc);
+    var mod_reg = parabellum.ModuleRegistry.init(alloc);
     defer mod_reg.deinit();
     try mod_reg.registerStaticModule("e2e_reverify", &manifest);
 
@@ -234,7 +234,7 @@ test "ARCH-036 TASK-036.6: End-to-end remediation stream swap, epoch re-verifica
         alloc: std.mem.Allocator,
         captured: std.ArrayListUnmanaged(u8) = .empty,
 
-        fn writePayload(ctx: *anyopaque, channel: []const u8, payload: flowdata.dataflow.PayloadHandle) anyerror!void {
+        fn writePayload(ctx: *anyopaque, channel: []const u8, payload: parabellum.dataflow.PayloadHandle) anyerror!void {
             const self: *@This() = @ptrCast(@alignCast(ctx));
             if (!std.mem.eql(u8, channel, "stream")) return;
             self.captured.clearRetainingCapacity();
@@ -249,10 +249,10 @@ test "ARCH-036 TASK-036.6: End-to-end remediation stream swap, epoch re-verifica
                 try self.captured.appendSlice(self.alloc, ptr[0..payload.len]);
             }
         }
-        fn writePayloadWithParams(ctx: *anyopaque, channel: []const u8, payload: flowdata.dataflow.PayloadHandle, _: []const flowdata.repository.ConfigParam) anyerror!void {
+        fn writePayloadWithParams(ctx: *anyopaque, channel: []const u8, payload: parabellum.dataflow.PayloadHandle, _: []const parabellum.repository.ConfigParam) anyerror!void {
             try writePayload(ctx, channel, payload);
         }
-        fn readPayload(_: *anyopaque, _: []const u8) ?flowdata.dataflow.PayloadHandle {
+        fn readPayload(_: *anyopaque, _: []const u8) ?parabellum.dataflow.PayloadHandle {
             return null;
         }
         fn recordCount(ctx: *anyopaque, _: []const u8) usize {
@@ -260,7 +260,7 @@ test "ARCH-036 TASK-036.6: End-to-end remediation stream swap, epoch re-verifica
             return if (self.captured.items.len > 0) 1 else 0;
         }
         fn deinit(_: *anyopaque) void {}
-        const vtable = flowdata.repository.StorageRepository.VTable{
+        const vtable = parabellum.repository.StorageRepository.VTable{
             .writePayload = &writePayload,
             .writePayloadWithParams = &writePayloadWithParams,
             .readPayload = &readPayload,
@@ -269,7 +269,7 @@ test "ARCH-036 TASK-036.6: End-to-end remediation stream swap, epoch re-verifica
         };
     };
 
-    var repo_reg = flowdata.RepositoryRegistry.init(alloc);
+    var repo_reg = parabellum.RepositoryRegistry.init(alloc);
     defer repo_reg.deinit();
     var cap_repo = CapturingStreamRepo{ .alloc = alloc };
     try repo_reg.register("artifacts", .{ .ptr = &cap_repo, .vtable = &CapturingStreamRepo.vtable });
@@ -293,12 +293,12 @@ test "ARCH-036 TASK-036.6: End-to-end remediation stream swap, epoch re-verifica
         \\            datasource: artifacts
     ;
 
-    const ast = try flowdata.yaml.loadPipelineAstFromYaml(alloc, yaml_text, .{});
-    var eng = flowdata.PipelineEngine.init(alloc, ast, &mod_reg, &repo_reg);
+    const ast = try parabellum.yaml.loadPipelineAstFromYaml(alloc, yaml_text, .{});
+    var eng = parabellum.PipelineEngine.init(alloc, ast, &mod_reg, &repo_reg);
     defer eng.deinit();
 
     const raw_bytes = "CLEAN_HEADEREXTRA_OVERLAY";
-    const summary = try eng.run(flowdata.dataflow.PayloadHandle.fromSlice(u8, raw_bytes));
+    const summary = try eng.run(parabellum.dataflow.PayloadHandle.fromSlice(u8, raw_bytes));
     // Epoch 0: probe (1) -> sanitize_truncate (2); Epoch 1: probe re-runs (3) -> clean!
     try std.testing.expectEqual(@as(usize, 3), summary.steps_executed);
 

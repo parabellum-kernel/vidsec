@@ -1,4 +1,4 @@
-const abi = @import("flowdata_abi");
+const abi = @import("parabellum_abi");
 const magic = @import("vidsec_magic");
 
 pub const TAIL_WINDOW_BYTES: usize = 8192;

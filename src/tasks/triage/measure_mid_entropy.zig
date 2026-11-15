@@ -1,4 +1,4 @@
-const abi = @import("flowdata_abi");
+const abi = @import("parabellum_abi");
 const math = @import("vidsec_math");
 
 pub const MID_WINDOW_BYTES: usize = 4096;

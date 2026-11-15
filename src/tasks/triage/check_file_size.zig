@@ -1,5 +1,5 @@
 const std = @import("std");
-const abi = @import("flowdata_abi");
+const abi = @import("parabellum_abi");
 
 pub const Inputs = struct {
     stream: abi.BoundedStreamReader,

@@ -1,5 +1,5 @@
 const std = @import("std");
-const abi = @import("flowdata_abi");
+const abi = @import("parabellum_abi");
 const vidsec = @import("vidsec");
 
 const dissect_isobmff = vidsec.tasks.dissect_isobmff;
@@ -22,7 +22,7 @@ const SliceStreamHost = struct {
         self.vtable.stream_size = &streamSize;
         self.vtable.stream_read_at = &streamReadAt;
         self.ctx_abi = .{
-            .abi_version = abi.FLOWDATA_ABI_VERSION,
+            .abi_version = abi.PARABELLUM_ABI_VERSION,
             .host = &self.vtable,
             .opaque_host_state = &self,
         };

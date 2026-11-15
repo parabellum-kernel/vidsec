@@ -1,4 +1,4 @@
-const abi = @import("flowdata_abi");
+const abi = @import("parabellum_abi");
 const tika = @import("tika");
 const magic = @import("vidsec_magic");
 

@@ -1,6 +1,6 @@
 # VidSec — Multimedia Security Forensics & CDR Sanitization Engine
 
-> High-performance, declarative binary container dissection, exploit detection, and Content Disarm & Reconstruction (CDR) pipeline built on **Flowdata v2**.
+> High-performance, declarative binary container dissection, exploit detection, and Content Disarm & Reconstruction (CDR) pipeline built on **Parabellum v2**.
 
 ---
 
@@ -8,7 +8,7 @@
 
 `apps/vidsec` inspects untrusted multimedia files (**ISOBMFF/MP4**, **EBML/Matroska/WebM**, and **RIFF/AVI**) in $O(\text{containers})$ I/O using pure format dissectors, declarative YAML CVE compendiums, format-agnostic Universal Container IR forensics (`R01`–`R10`), and zero-copy `StreamEmitter` CDR sanitization.
 
-All orchestration, policy gating, and exploit assertions are driven declaratively from [`configs/pipeline.yaml`](./configs/pipeline.yaml) and its imported sub-pipelines ([`configs/pipelines/`](./configs/pipelines/)), executed by [`libanalyzer.so`](./src/catalog.zig) on the Flowdata v2 engine:
+All orchestration, policy gating, and exploit assertions are driven declaratively from [`configs/pipeline.yaml`](./configs/pipeline.yaml) and its imported sub-pipelines ([`configs/pipelines/`](./configs/pipelines/)), executed by [`libanalyzer.so`](./src/catalog.zig) on the Parabellum v2 engine:
 
 - **Pure Format Dissectors (`libs/`) & Universal Container IR ([ARCH-035](../../docs/development/035-vidsec-libs-extraction-and-rebuild-plan.md))**: Standalone `std`-only binary parsers (`libs/tika`, `libs/isobmff`, `libs/ebml`, `libs/riff`) separate structural dissection (Stage 1a) from security policy, lowering containers into `libs/media_ir` (with run-coalesced `IrSampleRunRow` streams to prevent table explosions).
 - **Federated `type_driven` Routing & YAML `imports:` ([ARCH-035d](../../docs/development/035d-subpipeline-imports-and-type-driven-multi-pipeline-routing.md))**: `configs/pipeline.yaml` imports modular sub-pipelines (`structure_checks`, `cve_mp4`, `cve_mkv`, `cve_avi`, `forensics_ir`) compiled into one federated reactive DAG. Each video is dissected **once** per epoch while matching structural checks, CVE assertions, and IR rules run concurrently on `WorkerPool`.

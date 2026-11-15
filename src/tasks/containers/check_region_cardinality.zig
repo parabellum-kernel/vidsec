@@ -1,6 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const abi = @import("flowdata_abi");
+const abi = @import("parabellum_abi");
 const media_ir = @import("media_ir");
 const orders = @import("../remediation/orders.zig");
 const dissect_isobmff = @import("dissect_isobmff.zig");

@@ -6,15 +6,15 @@ pub fn build(b: *std.Build) void {
 
     const vidsec_version = std.SemanticVersion{ .major = 2, .minor = 0, .patch = 0 };
 
-    const sdk_dep = b.dependency("flowdata_sdk", .{
+    const sdk_dep = b.dependency("parabellum_sdk", .{
         .target = target,
         .optimize = optimize,
     });
-    const libs_dep = b.dependency("flowdata_libs", .{
+    const libs_dep = b.dependency("parabellum_libs", .{
         .target = target,
         .optimize = optimize,
     });
-    const abi_mod = sdk_dep.module("flowdata_abi");
+    const abi_mod = sdk_dep.module("parabellum_abi");
     const media_ir_mod = libs_dep.module("media_ir");
     const isobmff_mod = libs_dep.module("isobmff");
     const ebml_mod = libs_dep.module("ebml");
@@ -79,7 +79,7 @@ pub fn addPluginSharedLib(
         .optimize = optimize,
         .link_libc = true,
     });
-    plugin_mod.addImport("flowdata_abi", abi_mod);
+    plugin_mod.addImport("parabellum_abi", abi_mod);
     plugin_mod.addImport("tika", tika_mod);
     plugin_mod.addImport("vidsec_magic", magic_mod);
     plugin_mod.addImport("vidsec_math", math_mod);
