@@ -1,16 +1,16 @@
 .{
     .name = .vidsec,
-    .version = "1.0.0",
+    .version = "1.3.0",
     .minimum_zig_version = "0.17.1",
     .fingerprint = 0xd659431e14e4c6b2,
     .dependencies = .{
         .parabellum_sdk = .{
-            .url = "git+https://github.com/parabellum-kernel/sdk.git#v1.0.0",
-            .hash = "parabellum_sdk-1.0.0-46CU-l2KAwD9QljkXdHuEy93CfRB5Xv8rE7l49x75qSA",
+            .url = "git+https://github.com/parabellum-kernel/sdk.git#v1.3.0",
+            .hash = "parabellum_sdk-1.3.0-46CU-qagAwCkPnqdJO87pJCQn-xPp1tPJCd8i1ndk8q9",
         },
         .parabellum_libs = .{
-            .url = "git+https://github.com/parabellum-kernel/lib.git#v1.0.0",
-            .hash = "parabellum_libs-1.0.0-xPH3Y7bvDQAaotjjWkCABhEIveDyB1zpTUxSFn8rOy2c",
+            .url = "git+https://github.com/parabellum-kernel/lib.git#v1.3.0",
+            .hash = "parabellum_libs-1.3.0-xPH3Yw9oEADWdySvkEGEr1Kl2mzOxYkJHVISNPwUl_OP",
         },
     },
     .paths = .{
