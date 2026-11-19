@@ -5,7 +5,8 @@
     .fingerprint = 0xd659431e14e4c6b2,
     .dependencies = .{
         .parabellum_sdk = .{
-            .path = "../sdk",
+            .url = "git+https://github.com/parabellum-kernel/sdk.git#v2.0.1",
+            .hash = "parabellum_sdk-2.0.1-46CU-l70AwDuJMyGFHH83-NUVjMx9fCVkR0PsEXHyiVK",
         },
         .parabellum_libs = .{
             .url = "git+https://github.com/parabellum-kernel/lib.git#v2.0.2",

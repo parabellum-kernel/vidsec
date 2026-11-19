@@ -14,7 +14,6 @@ pub const tika = @import("tika");
 
 pub const magic_lib = @import("vidsec_magic");
 pub const math_lib = @import("vidsec_math");
-pub const artifact = @import("parabellum_ext_artifact");
 
 pub const container = @import("container.zig");
 pub const catalog = @import("catalog.zig");
