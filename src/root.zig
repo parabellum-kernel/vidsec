@@ -1,7 +1,7 @@
 const std = @import("std");
 
 pub const parabellum = @import("parabellum");
-pub const abi_lib = @import("parabellum_abi");
+pub const abi_lib = @import("parabellum_sdk").task;
 pub const pipeline = parabellum.pipeline;
 pub const yaml = parabellum.yaml;
 pub const pipeline_ast = parabellum.ast;

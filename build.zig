@@ -16,7 +16,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    const abi_mod = sdk_dep.module("parabellum_abi");
     const media_ir_mod = libs_dep.module("media_ir");
     const isobmff_mod = libs_dep.module("isobmff");
     const ebml_mod = libs_dep.module("ebml");
@@ -41,7 +40,6 @@ pub fn build(b: *std.Build) void {
         target,
         optimize,
         vidsec_version,
-        abi_mod,
         tika_mod,
         magic_mod,
         math_mod,
@@ -52,6 +50,7 @@ pub fn build(b: *std.Build) void {
         "analyzer",
         "src/catalog.zig",
     );
+    analyzer_lib.root_module.addImport("parabellum_sdk", sdk_dep.module("parabellum_sdk"));
 
     const test_step = b.step("test", "Run Vidsec pure-SDK unit tests");
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = magic_mod })).step);
@@ -79,7 +78,6 @@ pub fn addPluginSharedLib(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     version: std.SemanticVersion,
-    abi_mod: *std.Build.Module,
     tika_mod: *std.Build.Module,
     magic_mod: *std.Build.Module,
     math_mod: *std.Build.Module,
@@ -96,7 +94,6 @@ pub fn addPluginSharedLib(
         .optimize = optimize,
         .link_libc = true,
     });
-    plugin_mod.addImport("parabellum_abi", abi_mod);
     plugin_mod.addImport("tika", tika_mod);
     plugin_mod.addImport("vidsec_magic", magic_mod);
     plugin_mod.addImport("vidsec_math", math_mod);

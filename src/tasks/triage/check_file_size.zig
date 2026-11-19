@@ -1,5 +1,5 @@
 const std = @import("std");
-const abi = @import("parabellum_abi");
+const abi = @import("parabellum_sdk").task;
 
 pub const Inputs = struct {
     stream: abi.BoundedStreamReader,

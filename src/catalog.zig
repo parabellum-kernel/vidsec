@@ -1,8 +1,8 @@
-const abi = @import("parabellum_abi");
+const abi = @import("parabellum_sdk").task;
 const container = @import("container.zig").VidsecPluginContainer;
 const tasks_mod = @import("tasks/mod.zig");
 
-const tasks = [_]abi.TaskDescriptor_ABI{
+const tasks = [_]abi.abi.TaskDescriptor_ABI{
     // Stage 0: Pre-Triage
     container.defineTaskService(tasks_mod.check_file_size.Service, .{
         .name = "check_file_size",
@@ -168,7 +168,7 @@ const tasks = [_]abi.TaskDescriptor_ABI{
     }),
 };
 
-const required_plugins = [_]abi.PluginRequirement_ABI{
+const required_plugins = [_]abi.abi.PluginRequirement_ABI{
     .{ .kind = .driver, .name = "memory" },
     .{ .kind = .driver, .name = "sqlite" },
     .{ .kind = .driver, .name = "file_store" },

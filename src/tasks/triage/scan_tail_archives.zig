@@ -1,4 +1,4 @@
-const abi = @import("parabellum_abi");
+const abi = @import("parabellum_sdk").task;
 const magic = @import("vidsec_magic");
 
 pub const TAIL_WINDOW_BYTES: usize = 8192;

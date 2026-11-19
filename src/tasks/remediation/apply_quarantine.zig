@@ -1,4 +1,4 @@
-const abi = @import("parabellum_abi");
+const abi = @import("parabellum_sdk").task;
 const orders = @import("orders.zig");
 
 pub const Inputs = struct {

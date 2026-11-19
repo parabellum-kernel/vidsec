@@ -1,4 +1,4 @@
-const abi = @import("parabellum_abi");
+const abi = @import("parabellum_sdk").task;
 const tika = @import("tika");
 const magic = @import("vidsec_magic");
 

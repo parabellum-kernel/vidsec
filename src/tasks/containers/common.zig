@@ -1,5 +1,5 @@
 const std = @import("std");
-const abi = @import("parabellum_abi");
+const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
 
 /// Common inputs for Stage 1c pure IR lowering tasks.

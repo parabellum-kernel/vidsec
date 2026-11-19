@@ -1,6 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const abi = @import("parabellum_abi");
+const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
 const dissect_ebml = @import("dissect_ebml.zig");
 const dissect_mkv_structures = @import("dissect_mkv_structures.zig");

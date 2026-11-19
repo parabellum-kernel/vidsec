@@ -1,5 +1,5 @@
 const std = @import("std");
-const abi = @import("parabellum_abi");
+const abi = @import("parabellum_sdk").task;
 const vidsec = @import("vidsec");
 
 const lower_mp4 = vidsec.tasks.lower_mp4_container;
