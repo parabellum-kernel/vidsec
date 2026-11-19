@@ -1,6 +1,6 @@
 .{
     .name = .vidsec,
-    .version = "2.0.1",
+    .version = "2.0.2",
     .minimum_zig_version = "0.17.1",
     .fingerprint = 0xd659431e14e4c6b2,
     .dependencies = .{
@@ -8,8 +8,8 @@
             .path = "../sdk",
         },
         .parabellum_libs = .{
-            .url = "git+https://github.com/parabellum-kernel/lib.git#v2.0.1",
-            .hash = "parabellum_libs-2.0.1-xPH3Y12TEAB4CSj67yl3z7b5N_KwlVxUmKOlfMtZ1zsV",
+            .url = "git+https://github.com/parabellum-kernel/lib.git#v2.0.2",
+            .hash = "parabellum_libs-2.0.2-xPH3Y12TEAB5Yc0dfrq_-hVradcDtpV_rJkl5IlHPwHO",
         },
     },
     .paths = .{
