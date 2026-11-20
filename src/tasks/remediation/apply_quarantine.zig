@@ -19,9 +19,14 @@ pub const Outputs = abi.Channels(ChannelsOut);
 /// to the `quarantine` sink while emitting a `RemediationReport`.
 pub const Service = struct {
     emitter: abi.StreamEmitter,
+    logger: abi.Logger = .{},
 
     pub fn execute(self: *const Service, inputs: Inputs) !Outputs {
         const current_size = inputs.stream.len();
+        self.logger.err(
+            "Quarantining stream: rule={s} severity={d} size={d} reason={s}",
+            .{ inputs.rule_id, inputs.severity, current_size, inputs.reason },
+        );
         if (current_size > 0) {
             try self.emitter.splice(0, current_size);
         }

@@ -364,8 +364,19 @@ schemas:
         measured_value:     { type: float64, nullable: true }
         message:            { type: text, nullable: true }
         is_remediated:      { type: bool, default: false }
-        remediation_action: { type: text, default: "UNRESOLVED" }
+        remediation_action: { type: text, default: "'UNRESOLVED'" }
       indexes:
         - rule_id
         - severity
         - is_remediated
+
+    remediation_outcomes:
+      columns:
+        outcome_id:        { type: int64, pk: true }
+        action:            { type: text }
+        rule_id:           { type: text }
+        offset:            { type: int64, default: 0 }
+        length:            { type: int64, default: 0 }
+        new_size:          { type: int64, default: 0 }
+        applied:           { type: bool, default: false }
+        requires_reverify: { type: bool, default: false }

@@ -1,0 +1,21 @@
+id: vidsec
+name: Parabellum VidSec
+version: "2.0.2"
+description: Multimedia Security Forensics & CDR Sanitization Engine
+
+capabilities:
+  - id: analyze_video
+    group: forensics
+    title: Analyze & Sanitize Video
+    description: Run the 6-stage dissection, CVE assertion, IR forensics, and CDR sanitization pipeline on a media file.
+    target_kind: pipeline
+    target: ingest
+    execution_mode: sync_fast
+    inputs:
+      - name: path
+        label: Video File Path
+        description: Path to the MP4, MKV/WebM, or AVI file to inspect and sanitize.
+        field_type: file_path
+        required: true
+    output:
+      kind: record

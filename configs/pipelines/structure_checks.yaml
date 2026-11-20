@@ -5,7 +5,7 @@ pipelines:
     steps:
       - id: check_mp4_structure
         uses: analyzer/check_mp4_structure
-        where: "triage_passed == true and detected_family == 'isobmff'"
+        where: "triage_passed == true and detected_family == 'isobmff' and (isobmff_valid == false or atoms_valid == true or atoms_valid == false)"
         outputs:
           mp4_structure_valid:
             datasource: pipeline_memory

@@ -20,6 +20,7 @@ pub const Outputs = abi.Channels(ChannelsOut);
 /// stream via `abi.StreamEmitter` along with a `RemediationReport`.
 pub const Service = struct {
     emitter: abi.StreamEmitter,
+    logger: abi.Logger = .{},
 
     pub fn execute(self: *const Service, inputs: Inputs) !Outputs {
         const current_size = inputs.stream.len();
@@ -27,6 +28,11 @@ pub const Service = struct {
         const max_len = current_size - bounded_offset;
         const effective_len = @min(inputs.length, max_len);
         const should_apply = effective_len > 0;
+
+        self.logger.warn(
+            "Zeroing stream range: rule={s} offset={d} length={d} applied={} reason={s}",
+            .{ inputs.rule_id, bounded_offset, effective_len, should_apply, inputs.reason },
+        );
 
         if (bounded_offset > 0) {
             try self.emitter.splice(0, bounded_offset);

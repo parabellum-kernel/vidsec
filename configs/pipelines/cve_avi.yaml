@@ -5,7 +5,7 @@ pipelines:
     steps:
       - id: cve_2021_38114_avi_strh_zero_scale
         uses: analyzer/inspect_region_field
-        where: "triage_passed == true and detected_family == 'riff'"
+        where: "triage_passed == true and detected_family == 'riff' and (riff_valid == true or riff_valid == false)"
         params:
           target_tag: "strh"
           field_offset: 20
@@ -28,7 +28,7 @@ pipelines:
 
       - id: cve_2021_38114_avi_strf_palette
         uses: analyzer/inspect_region_field
-        where: "triage_passed == true and detected_family == 'riff'"
+        where: "triage_passed == true and detected_family == 'riff' and (riff_valid == true or riff_valid == false)"
         params:
           target_tag: "strf"
           min_payload_size: 40
@@ -51,7 +51,7 @@ pipelines:
 
       - id: cve_2017_9992_dup_avi_strf
         uses: analyzer/check_region_cardinality
-        where: "triage_passed == true and detected_family == 'riff'"
+        where: "triage_passed == true and detected_family == 'riff' and (riff_valid == true or riff_valid == false)"
         params:
           parent_tag: "strl"
           child_tag: "strf"

@@ -4,6 +4,10 @@ const tasks_mod = @import("tasks/mod.zig");
 
 const tasks = [_]abi.abi.TaskDescriptor_ABI{
     // Stage 0: Pre-Triage
+    container.defineTaskService(tasks_mod.open_file.Service, .{
+        .name = "open_file",
+        .description = "Opens a local media file by path and streams its bytes into the pipeline.",
+    }),
     container.defineTaskService(tasks_mod.check_file_size.Service, .{
         .name = "check_file_size",
         .description = "Validates stream length against configured minimum and maximum size limits.",

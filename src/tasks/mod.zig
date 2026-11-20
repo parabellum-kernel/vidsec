@@ -1,3 +1,4 @@
+pub const open_file = @import("triage/open_file.zig");
 pub const check_file_size = @import("triage/check_file_size.zig");
 pub const detect_magic = @import("triage/detect_magic.zig");
 pub const check_extension = @import("triage/check_extension.zig");

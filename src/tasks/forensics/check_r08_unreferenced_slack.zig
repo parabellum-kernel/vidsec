@@ -8,7 +8,7 @@ const r07 = @import("check_r07_suspicious_padding.zig");
 
 pub const Inputs = struct {
     stream: abi.BoundedStreamReader,
-    ir_unreferenced_slack: []const media_ir.IrUnreferencedSlackRow = &.{},
+    ir_unreferenced_slack: []const media_ir.IrUnreferencedSlackRow,
     entropy_threshold: f64 = 7.2,
     large_slack_bytes: u64 = 4096,
 };

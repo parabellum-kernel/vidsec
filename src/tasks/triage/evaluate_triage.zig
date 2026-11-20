@@ -26,7 +26,9 @@ pub const Outputs = abi.Channels(OutputsData);
 
 /// Evaluates Stage 0 gatekeeper flags into explicit `audit_findings` and `QuarantineOrder`s.
 pub const Service = struct {
-    pub fn execute(_: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
+    logger: abi.Logger = .{},
+
+    pub fn execute(self: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
         var findings: std.ArrayList(media_ir.AuditFindingRow) = .empty;
         errdefer findings.deinit(alloc);
         var q_orders: std.ArrayList(orders.QuarantineOrder) = .empty;
@@ -121,9 +123,31 @@ pub const Service = struct {
             });
         }
 
+        const triage_passed = !should_quarantine and !inputs.extension_violation;
+        for (findings.items) |f| {
+            self.logger.warn(
+                "Stage 0 finding: rule={s} severity={d} region={s} msg={s}",
+                .{ f.rule_id, f.severity, f.region_tag orelse "", f.message orelse "" },
+            );
+        }
+        if (should_quarantine) {
+            self.logger.err("Stage 0 verdict: QUARANTINE (size_valid={} is_video={} is_hostile={} exec={} script={} tail_polyglot={})", .{
+                inputs.size_valid,
+                inputs.is_video,
+                inputs.is_hostile,
+                inputs.has_embedded_executable,
+                inputs.has_suspicious_script,
+                inputs.has_tail_polyglot,
+            });
+        } else if (!triage_passed) {
+            self.logger.warn("Stage 0 verdict: REJECTED (extension_violation={})", .{inputs.extension_violation});
+        } else {
+            self.logger.info("Stage 0 verdict: PASSED", .{});
+        }
+
         return .{
             .data = .{
-                .triage_passed = !should_quarantine and !inputs.extension_violation,
+                .triage_passed = triage_passed,
                 .audit_findings = try findings.toOwnedSlice(alloc),
                 .quarantine_orders = try q_orders.toOwnedSlice(alloc),
             },

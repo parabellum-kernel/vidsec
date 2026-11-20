@@ -513,3 +513,95 @@ test "TASK-035d.4: Federated zero-redundancy parallel execution across main, str
     try std.testing.expectEqual(@as(usize, 1), Counters.cve_mp4_calls);
     try std.testing.expectEqual(@as(usize, 1), Counters.forensics_calls);
 }
+
+test "E2E real tasks: stage0 triage flows into dissect_isobmff on MP4" {
+    const alloc = std.testing.allocator;
+
+    var tasks = [_]abi.TaskDescriptor_ABI{
+        abi.defineTaskService(vidsec.tasks.check_file_size.Service, .{ .name = "check_file_size" }),
+        abi.defineTaskService(vidsec.tasks.detect_magic.Service, .{ .name = "detect_magic" }),
+        abi.defineTaskService(vidsec.tasks.check_extension.Service, .{ .name = "check_extension" }),
+        abi.defineTaskService(vidsec.tasks.scan_head_executables.Service, .{ .name = "scan_head_executables" }),
+        abi.defineTaskService(vidsec.tasks.scan_head_scripts.Service, .{ .name = "scan_head_scripts" }),
+        abi.defineTaskService(vidsec.tasks.scan_tail_archives.Service, .{ .name = "scan_tail_archives" }),
+        abi.defineTaskService(vidsec.tasks.measure_mid_entropy.Service, .{ .name = "measure_mid_entropy" }),
+        abi.defineTaskService(vidsec.tasks.evaluate_triage.Service, .{ .name = "evaluate_triage" }),
+        abi.defineTaskService(vidsec.tasks.dissect_isobmff.Service, .{ .name = "dissect_isobmff" }),
+    };
+    const manifest = abi.ModuleManifest_ABI{
+        .module_name = "analyzer",
+        .module_version = .{ .major = 1, .minor = 0, .patch = 0 },
+        .tasks_ptr = &tasks,
+        .tasks_len = tasks.len,
+    };
+
+    var mod_reg = parabellum.ModuleRegistry.init(alloc);
+    defer mod_reg.deinit();
+    try mod_reg.registerStaticModule("analyzer", &manifest);
+
+    var repo_reg = parabellum.RepositoryRegistry.init(alloc);
+    defer repo_reg.deinit();
+
+    const yaml_text =
+        \\version: 2
+        \\runtime:
+        \\  scheduler: dag
+        \\  routing: type_driven
+        \\pipelines:
+        \\  main:
+        \\    routing: type_driven
+        \\    steps:
+        \\      - id: stage0_size
+        \\        uses: analyzer/check_file_size
+        \\      - id: stage0_magic
+        \\        uses: analyzer/detect_magic
+        \\        where: "size_valid == true"
+        \\      - id: stage0_ext
+        \\        uses: analyzer/check_extension
+        \\        where: "is_video == true and is_hostile == false"
+        \\        params:
+        \\          strict_extension: true
+        \\      - id: stage0_head_exec
+        \\        uses: analyzer/scan_head_executables
+        \\        where: "size_valid == true"
+        \\      - id: stage0_head_scripts
+        \\        uses: analyzer/scan_head_scripts
+        \\        where: "size_valid == true"
+        \\      - id: stage0_tail_arch
+        \\        uses: analyzer/scan_tail_archives
+        \\        where: "size_valid == true"
+        \\      - id: stage0_mid_entropy
+        \\        uses: analyzer/measure_mid_entropy
+        \\        where: "size_valid == true"
+        \\      - id: stage0_evaluate_triage
+        \\        uses: analyzer/evaluate_triage
+        \\        where: "size_valid == false or (size_valid == true and (has_embedded_executable == true or has_embedded_executable == false) and (has_suspicious_script == true or has_suspicious_script == false) and (has_tail_polyglot == true or has_tail_polyglot == false) and (low_mid_entropy == true or low_mid_entropy == false) and (is_video == false or is_hostile == true or extension_match == true or extension_match == false))"
+        \\        outputs:
+        \\          triage_passed:
+        \\            datasource: pipeline_memory
+        \\          audit_findings:
+        \\            datasource: audit_db
+        \\          quarantine_orders:
+        \\            datasource: pipeline_memory
+        \\      - id: dissect_isobmff
+        \\        uses: analyzer/dissect_isobmff
+        \\        where: "triage_passed == true and detected_family == 'isobmff'"
+    ;
+
+    const ast = try parabellum.yaml.loadPipelineAstFromYaml(alloc, yaml_text, .{});
+    var eng = parabellum.PipelineEngine.init(alloc, ast, &mod_reg, &repo_reg);
+    defer eng.deinit();
+
+    var mp4_buf: [2048]u8 = undefined;
+    var prng = std.Random.DefaultPrng.init(0x5A17_0460);
+    prng.random().bytes(&mp4_buf);
+    // ftyp box (20 bytes): size=20, 'ftyp', 'isom', minor=0x200, 'isom'
+    @memcpy(mp4_buf[0..20], "\x00\x00\x00\x14ftypisom\x00\x00\x02\x00isom");
+    // moov box (8 bytes header) + mdat box (rest of buffer)
+    @memcpy(mp4_buf[20..28], "\x00\x00\x00\x08moov");
+    const mdat_size: u32 = @intCast(mp4_buf.len - 28);
+    std.mem.writeInt(u32, mp4_buf[28..32], mdat_size, .big);
+    @memcpy(mp4_buf[32..36], "mdat");
+    const summary = try eng.run(parabellum.dataflow.PayloadHandle.fromSlice(u8, &mp4_buf));
+    try std.testing.expectEqual(@as(usize, 9), summary.steps_executed);
+}

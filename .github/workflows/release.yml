@@ -1,15 +1,17 @@
 name: Release Vidsec Plugin
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 env:
   ZIG_VERSION: "0.17.1"
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   build-and-release:
+    needs: ci
     permissions:
       contents: write
     strategy:
@@ -18,7 +20,7 @@ jobs:
           - os: ubuntu-latest
             asset_suffix: linux-x86_64
             lib_ext: so
-          - os: macos-14
+          - os: macos-15
             asset_suffix: macos-aarch64
             lib_ext: dylib
     runs-on: ${{ matrix.os }}

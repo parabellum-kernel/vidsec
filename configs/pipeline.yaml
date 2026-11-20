@@ -19,6 +19,17 @@ runtime:
   max_inflight_bytes: 512MiB
   retain_all: false
 
+extensions:
+  inbound_cli: {}
+  tui_inbound: {}
+  opentelemetry:
+    file: "${OTEL_EXPORTER_FILE_PATH:-./configs/data/logs/otel_export.json}"
+    console: "${OTEL_LOG_CONSOLE:-false}"
+  trace_jsonl:
+    file: "${PARABELLUM_TRACE_OUT:-./configs/data/logs/trace.jsonl}"
+
+capabilities: ./configs/capabilities.yaml
+
 datasources:
   pipeline_memory:
     driver: memory
@@ -38,7 +49,7 @@ datasources:
   quarantine:
     driver: file_store
     role: sink
-    directory: "./quarantine/"
+    directory: "${VIDSEC_QUARANTINE_DIR:-./quarantine/}"
 
 modules:
   analyzer:
@@ -52,6 +63,15 @@ imports:
   - pipelines/forensics_ir.yaml
 
 pipelines:
+  ingest:
+    routing: directed
+    steps:
+      - id: open_input_file
+        uses: analyzer/open_file
+        from: jobs
+      - router: route_to_main
+        default: main
+
   main:
     steps:
       # -----------------------------------------------------------------------
@@ -114,8 +134,9 @@ pipelines:
 
       - id: stage0_evaluate_triage
         uses: analyzer/evaluate_triage
+        where: "size_valid == false or (size_valid == true and has_embedded_executable != null and has_suspicious_script != null and has_tail_polyglot != null and low_mid_entropy != null and (is_video == false or is_hostile == true or extension_match != null))"
         outputs:
-          triage_verdict:
+          triage_passed:
             datasource: pipeline_memory
           audit_findings:
             datasource: audit_db
@@ -239,6 +260,7 @@ pipelines:
       # -----------------------------------------------------------------------
       - id: sanitize_truncate
         uses: analyzer/apply_truncate
+        where: "truncate_orders.__count__ > 0"
         outputs:
           stream:
             datasource: artifacts
@@ -247,6 +269,7 @@ pipelines:
 
       - id: sanitize_zero_out
         uses: analyzer/apply_zero_out
+        where: "zero_out_orders.__count__ > 0"
         outputs:
           stream:
             datasource: artifacts
@@ -255,6 +278,7 @@ pipelines:
 
       - id: execute_quarantine
         uses: analyzer/apply_quarantine
+        where: "quarantine_orders.__count__ > 0"
         outputs:
           stream:
             datasource: quarantine

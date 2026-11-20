@@ -1,18 +1,25 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+  workflow_call:
 
 env:
   ZIG_VERSION: "0.17.1"
-  PARABELLUM_SDK_VERSION: "v1.0.0"
+  PARABELLUM_SDK_VERSION: "v2.0.4"
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_suffix: linux-x86_64
+            lib_ext: so
+          - os: macos-15
+            asset_suffix: macos-aarch64
+            lib_ext: dylib
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,8 +36,8 @@ jobs:
       - name: Download precompiled libparabellum_host
         run: |
           mkdir -p .host-lib
-          curl -fsSL -o .host-lib/libparabellum_host.so \
-            "https://github.com/parabellum-kernel/sdk/releases/download/${{ env.PARABELLUM_SDK_VERSION }}/libparabellum_host-linux-x86_64.so"
+          curl -fsSL -o .host-lib/libparabellum_host.${{ matrix.lib_ext }} \
+            "https://github.com/parabellum-kernel/sdk/releases/download/${{ env.PARABELLUM_SDK_VERSION }}/libparabellum_host-${{ matrix.asset_suffix }}.${{ matrix.lib_ext }}"
 
       - name: Tier 2 Host E2E Tests
         run: zig build test-e2e -Dhost-lib-dir=.host-lib

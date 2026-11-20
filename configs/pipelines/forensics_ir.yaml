@@ -5,6 +5,7 @@ pipelines:
     steps:
       - id: analyze_topology
         uses: analyzer/analyze_topology
+        where: "triage_passed == true and detected_format > 0"
         outputs:
           ir_unreferenced_slack:
             datasource: pipeline_memory
@@ -13,6 +14,7 @@ pipelines:
 
       - id: check_r02_trailing_overlay
         uses: analyzer/check_r02_trailing_overlay
+        where: "triage_passed == true and detected_format > 0"
         params:
           entropy_threshold: 7.2
           allow_truncate: true
@@ -26,6 +28,7 @@ pipelines:
 
       - id: check_r04_sample_bounds
         uses: analyzer/check_r04_sample_bounds
+        where: "triage_passed == true and detected_format > 0"
         params:
           quarantine_on_fail: true
         outputs:
@@ -36,6 +39,7 @@ pipelines:
 
       - id: check_r05_external_refs
         uses: analyzer/check_r05_external_refs
+        where: "triage_passed == true and detected_format > 0"
         params:
           quarantine_on_fail: true
         outputs:
@@ -46,6 +50,7 @@ pipelines:
 
       - id: check_r06_embedded_attachments
         uses: analyzer/check_r06_embedded_attachments
+        where: "triage_passed == true and detected_format > 0"
         params:
           quarantine_on_fail: true
         outputs:
@@ -56,6 +61,7 @@ pipelines:
 
       - id: check_r07_suspicious_padding
         uses: analyzer/check_r07_suspicious_padding
+        where: "triage_passed == true and detected_format > 0"
         concurrency: max
         params:
           entropy_threshold: 7.2
@@ -69,6 +75,7 @@ pipelines:
 
       - id: check_r08_unreferenced_slack
         uses: analyzer/check_r08_unreferenced_slack
+        where: "triage_passed == true and detected_format > 0"
         concurrency: max
         params:
           entropy_threshold: 7.2
@@ -83,6 +90,7 @@ pipelines:
 
       - id: check_r09_codec_inconsistencies
         uses: analyzer/check_r09_codec_inconsistencies
+        where: "triage_passed == true and detected_format > 0"
         params:
           max_dimension: 16384
         outputs:
@@ -91,6 +99,7 @@ pipelines:
 
       - id: check_r10_sample_overlaps
         uses: analyzer/check_r10_sample_overlaps
+        where: "triage_passed == true and detected_format > 0"
         params:
           max_amplification_ratio: 1.0
           quarantine_on_fail: true

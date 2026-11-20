@@ -5,7 +5,7 @@ pipelines:
     steps:
       - id: cve_2019_13615_ebml_max_size_len
         uses: analyzer/inspect_region_field
-        where: "triage_passed == true and detected_family == 'ebml'"
+        where: "triage_passed == true and detected_family == 'ebml' and (ebml_valid == true or ebml_valid == false)"
         params:
           target_tag: "0x42f3"
           field_offset: 0
@@ -27,7 +27,7 @@ pipelines:
 
       - id: cve_2020_22019_dup_codec_private
         uses: analyzer/check_region_cardinality
-        where: "triage_passed == true and detected_family == 'ebml'"
+        where: "triage_passed == true and detected_family == 'ebml' and (ebml_valid == true or ebml_valid == false)"
         params:
           parent_tag: "0xae"
           child_tag: "0x63a2"
@@ -45,7 +45,7 @@ pipelines:
 
       - id: cve_2016_1621_ebml_lacing
         uses: analyzer/inspect_ebml_lacing
-        where: "triage_passed == true and detected_family == 'ebml'"
+        where: "triage_passed == true and detected_family == 'ebml' and (ebml_valid == true or ebml_valid == false)"
         params:
           rule_id: "cve_2016_1621_ebml_lacing"
           severity: 4

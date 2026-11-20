@@ -19,11 +19,17 @@ pub const Outputs = abi.Channels(ChannelsOut);
 /// via `abi.StreamEmitter` along with a `RemediationReport` on `remediation_outcomes`.
 pub const Service = struct {
     emitter: abi.StreamEmitter,
+    logger: abi.Logger = .{},
 
     pub fn execute(self: *const Service, inputs: Inputs) !Outputs {
         const current_size = inputs.stream.len();
         const effective_size = @min(inputs.new_size, current_size);
         const should_apply = effective_size < current_size;
+
+        self.logger.warn(
+            "Truncating stream: rule={s} old_size={d} new_size={d} applied={} reason={s}",
+            .{ inputs.rule_id, current_size, effective_size, should_apply, inputs.reason },
+        );
 
         if (effective_size > 0) {
             try self.emitter.splice(0, effective_size);
