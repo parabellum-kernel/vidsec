@@ -5,12 +5,13 @@
     .fingerprint = 0xd659431e14e4c6b2,
     .dependencies = .{
         .parabellum_sdk = .{
-            .url = "git+https://github.com/parabellum-kernel/sdk.git?ref=v2.0.4#950270c1902fcb0d68aa3a0f5dc66c273a7ef0ab",
-            .hash = "parabellum_sdk-2.0.4-46CU-jeYBAA0b4hZg_jyUGomBCyt3XOVcAIWoun7y9SB",
+            .path = "../sdk",
         },
         .parabellum_libs = .{
-            .url = "git+https://github.com/parabellum-kernel/lib.git#v2.0.2",
-            .hash = "parabellum_libs-2.0.2-xPH3Y12TEAB5Yc0dfrq_-hVradcDtpV_rJkl5IlHPwHO",
+            .path = "../lib",
+        },
+        .parabellum_extensions = .{
+            .path = "../extension",
         },
     },
     .paths = .{
