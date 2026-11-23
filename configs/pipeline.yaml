@@ -68,7 +68,7 @@ pipelines:
     routing: directed
     steps:
       - id: open_input_file
-        uses: analyzer/open_file
+        uses: fs/open_file_stream
         from: jobs
         outputs:
           input_files:
