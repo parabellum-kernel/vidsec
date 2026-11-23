@@ -8,9 +8,13 @@ pipelines:
         where: "triage_passed == true and detected_format > 0"
         outputs:
           ir_unreferenced_slack:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       - id: check_r02_trailing_overlay
         uses: analyzer/check_r02_trailing_overlay
@@ -21,6 +25,8 @@ pipelines:
         outputs:
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           truncate_orders:
             datasource: pipeline_memory
           quarantine_orders:
@@ -34,6 +40,8 @@ pipelines:
         outputs:
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           quarantine_orders:
             datasource: pipeline_memory
 
@@ -45,17 +53,8 @@ pipelines:
         outputs:
           audit_findings:
             datasource: audit_db
-          quarantine_orders:
-            datasource: pipeline_memory
-
-      - id: check_r06_embedded_attachments
-        uses: analyzer/check_r06_embedded_attachments
-        where: "triage_passed == true and detected_format > 0"
-        params:
-          quarantine_on_fail: true
-        outputs:
-          audit_findings:
-            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           quarantine_orders:
             datasource: pipeline_memory
 
@@ -68,6 +67,8 @@ pipelines:
         outputs:
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           zero_out_orders:
             datasource: pipeline_memory
           quarantine_orders:
@@ -83,6 +84,8 @@ pipelines:
         outputs:
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           zero_out_orders:
             datasource: pipeline_memory
           quarantine_orders:
@@ -96,6 +99,8 @@ pipelines:
         outputs:
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       - id: check_r10_sample_overlaps
         uses: analyzer/check_r10_sample_overlaps
@@ -106,6 +111,8 @@ pipelines:
         outputs:
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           quarantine_orders:
             datasource: pipeline_memory
 

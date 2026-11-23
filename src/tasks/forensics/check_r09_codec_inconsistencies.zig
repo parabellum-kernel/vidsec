@@ -2,6 +2,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
+const common = @import("../containers/common.zig");
 
 pub const Inputs = struct {
     ir_codec_configs: []const media_ir.IrCodecConfigRow = &.{},
@@ -17,11 +18,14 @@ pub const Outputs = abi.Channels(OutputsData);
 /// Stage 2 R09 validator: checks container vs bitstream dimension mismatches
 /// and out-of-range video dimensions (`0` or `> 16384`).
 pub const Service = struct {
-    pub fn execute(_: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
+    logger: abi.Logger = .{},
+
+    pub fn execute(self: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
         var findings: std.ArrayList(media_ir.AuditFindingRow) = .empty;
         errdefer findings.deinit(alloc);
 
         for (inputs.ir_codec_configs) |cfg| {
+            if (!std.mem.eql(u8, cfg.track_kind, "video")) continue;
             const mismatch = cfg.is_mismatch or
                 cfg.container_width != cfg.bitstream_width or
                 cfg.container_height != cfg.bitstream_height;
@@ -58,6 +62,7 @@ pub const Service = struct {
             }
         }
 
+        common.logFindings(self.logger, findings.items);
         return .{ .data = .{
             .audit_findings = try findings.toOwnedSlice(alloc),
         } };

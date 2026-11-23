@@ -70,6 +70,7 @@ test "configs: schemas.yaml and pipeline.yaml parse cleanly" {
     const schemas_yaml = try std.Io.Dir.cwd().readFileAlloc(std.testing.io, "configs/schemas.yaml", alloc, .unlimited);
 
     const catalog = try parabellum.yaml.parseSchemaCatalog(alloc, schemas_yaml, null);
+    try std.testing.expect(catalog.getTable("input_files") != null);
     try std.testing.expect(catalog.getTable("isobmff_triage") != null);
     try std.testing.expect(catalog.getTable("mp4_atoms_summary") != null);
     try std.testing.expect(catalog.getTable("ebml_triage") != null);

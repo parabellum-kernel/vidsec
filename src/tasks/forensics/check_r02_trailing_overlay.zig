@@ -5,10 +5,11 @@ const media_ir = @import("media_ir");
 const vidsec_magic = @import("vidsec_magic");
 const vidsec_math = @import("vidsec_math");
 const orders = @import("../remediation/orders.zig");
+const common = @import("../containers/common.zig");
 
 pub const Inputs = struct {
     stream: abi.BoundedStreamReader,
-    ir_unreferenced_slack: []const media_ir.IrUnreferencedSlackRow,
+    ir_unreferenced_slack: []const media_ir.IrUnreferencedSlackRow = &.{},
     entropy_threshold: f64 = 7.2,
     allow_truncate: bool = true,
 };
@@ -24,7 +25,9 @@ pub const Outputs = abi.Channels(OutputsData);
 /// Stage 2 R02 validator: inspects `trailing_overlay` slack with 16-byte zero tolerance,
 /// 64 KB signature scanning, and Shannon entropy measurement.
 pub const Service = struct {
-    pub fn execute(_: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
+    logger: abi.Logger = .{},
+
+    pub fn execute(self: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
         var findings: std.ArrayList(media_ir.AuditFindingRow) = .empty;
         errdefer findings.deinit(alloc);
         var truncs: std.ArrayList(orders.TruncateOrder) = .empty;
@@ -97,6 +100,7 @@ pub const Service = struct {
             }
         }
 
+        common.logFindings(self.logger, findings.items);
         return .{ .data = .{
             .audit_findings = try findings.toOwnedSlice(alloc),
             .truncate_orders = try truncs.toOwnedSlice(alloc),

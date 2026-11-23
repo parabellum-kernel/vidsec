@@ -61,18 +61,26 @@ pub const Service = struct {
         }
 
         for (dissected.tracks, 1..) |t, idx| {
-            if (t.video) |v| {
-                try codec_configs.append(alloc, .{
-                    .config_id = @intCast(idx),
-                    .track_id = @intCast(t.track_number),
-                    .codec_tag = if (t.codec_id.len > 0) try alloc.dupe(u8, t.codec_id) else "unknown",
-                    .container_width = v.pixel_width,
-                    .container_height = v.pixel_height,
-                    .bitstream_width = v.pixel_width,
-                    .bitstream_height = v.pixel_height,
-                    .is_mismatch = false,
-                });
-            }
+            const kind: []const u8 = switch (t.track_type) {
+                .video => "video",
+                .audio => "audio",
+                .subtitle => "subtitle",
+                .complex => "complex",
+                else => "other",
+            };
+            const w: i64 = if (t.video) |v| v.pixel_width else 0;
+            const h: i64 = if (t.video) |v| v.pixel_height else 0;
+            try codec_configs.append(alloc, .{
+                .config_id = @intCast(idx),
+                .track_id = @intCast(t.track_number),
+                .track_kind = kind,
+                .codec_tag = if (t.codec_id.len > 0) try alloc.dupe(u8, t.codec_id) else "unknown",
+                .container_width = w,
+                .container_height = h,
+                .bitstream_width = w,
+                .bitstream_height = h,
+                .is_mismatch = false,
+            });
         }
 
         for (dissected.attachments, 1..) |att, idx| {

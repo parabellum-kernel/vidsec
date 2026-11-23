@@ -54,10 +54,23 @@ schemas:
         - { id: 7, code: attachment, description: "Embedded auxiliary file or font attachment" }
         - { id: 8, code: external_ref, description: "URL or external file path reference" }
 
-  # 1. Pre-Triage Domain (Format Family, Magic Spoofing, Entropy & Polyglot Gatekeeper)
+  # 1. Pre-Triage Domain (Input Files, Format Family, Magic Spoofing, Entropy & Polyglot Gatekeeper)
   triage:
+    input_files:
+      columns:
+        file_id:            { type: int64, pk: true }
+        file_path:          { type: text }
+        file_name:          { type: text }
+        declared_extension: { type: text, default: "''" }
+        file_size:          { type: int64, default: 0 }
+        analyzed_at_ns:     { type: int64, default: 0 }
+      indexes:
+        - file_path
+        - file_name
+
     file_triage:
       columns:
+        file_id:            { type: int64, pk: true, ref: input_files.file_id, on_delete: cascade }
         file_size:          { type: int64 }
         detected_family:    { type: text }
         true_magic_kind:    { type: int64 }
@@ -76,6 +89,7 @@ schemas:
 
     isobmff_triage:
       columns:
+        file_id:                   { type: int64, pk: true, ref: input_files.file_id, on_delete: cascade }
         box_count:                 { type: int64 }
         has_ftyp:                  { type: bool, default: true }
         has_moov:                  { type: bool, default: true }
@@ -86,7 +100,8 @@ schemas:
 
     isobmff_boxes:
       columns:
-        region_id:        { type: int64, pk: true }
+        file_id:          { type: int64, ref: input_files.file_id, on_delete: cascade }
+        region_id:        { type: int64 }
         parent_region_id: { type: int64, nullable: true }
         depth:            { type: int64 }
         fourcc:           { type: text }
@@ -98,12 +113,17 @@ schemas:
         available_bytes:  { type: int64 }
         is_truncated:     { type: bool, default: false }
         is_overflow:      { type: bool, default: false }
+      primary_key:
+        - file_id
+        - region_id
       indexes:
+        - file_id
         - fourcc
         - role
 
     mp4_atoms_summary:
       columns:
+        file_id:              { type: int64, pk: true, ref: input_files.file_id, on_delete: cascade }
         track_count:          { type: int64 }
         sample_run_count:     { type: int64 }
         avcc_count:           { type: int64 }
@@ -114,6 +134,7 @@ schemas:
 
     mp4_table_measurements:
       columns:
+        file_id:            { type: int64, ref: input_files.file_id, on_delete: cascade }
         table_fourcc:       { type: text }
         path:               { type: text }
         entry_count:        { type: int64 }
@@ -122,9 +143,12 @@ schemas:
         payload_size:       { type: int64 }
         is_overflow:        { type: bool, default: false }
         has_arith_overflow: { type: bool, default: false }
+      indexes:
+        - file_id
 
     mp4_codec_headers:
       columns:
+        file_id:               { type: int64, ref: input_files.file_id, on_delete: cascade }
         track_id:              { type: int64 }
         codec_tag:             { type: text }
         kind:                  { type: text }
@@ -135,10 +159,13 @@ schemas:
         array_count:           { type: int64, default: 0 }
         claimed_bytes:         { type: int64, default: 0 }
         payload_size:          { type: int64, default: 0 }
+      indexes:
+        - file_id
 
     mp4_tracks:
       columns:
-        track_id:     { type: int64, pk: true }
+        file_id:      { type: int64, ref: input_files.file_id, on_delete: cascade }
+        track_id:     { type: int64 }
         handler_type: { type: text }
         codec_fourcc: { type: text }
         width:        { type: int64 }
@@ -146,11 +173,16 @@ schemas:
         sample_count: { type: int64 }
         has_avcc:     { type: bool, default: false }
         has_esds:     { type: bool, default: false }
+      primary_key:
+        - file_id
+        - track_id
       indexes:
+        - file_id
         - codec_fourcc
 
     ebml_triage:
       columns:
+        file_id:                   { type: int64, pk: true, ref: input_files.file_id, on_delete: cascade }
         has_ebml_header:           { type: bool, default: true }
         has_segment:               { type: bool, default: true }
         doc_type:                  { type: text }
@@ -163,7 +195,8 @@ schemas:
 
     ebml_elements:
       columns:
-        region_id:        { type: int64, pk: true }
+        file_id:          { type: int64, ref: input_files.file_id, on_delete: cascade }
+        region_id:        { type: int64 }
         parent_region_id: { type: int64, nullable: true }
         depth:            { type: int64 }
         ebml_id_hex:      { type: text }
@@ -174,12 +207,17 @@ schemas:
         available_bytes:  { type: int64 }
         is_truncated:     { type: bool, default: false }
         is_overflow:      { type: bool, default: false }
+      primary_key:
+        - file_id
+        - region_id
       indexes:
+        - file_id
         - ebml_id_hex
         - role
 
     mkv_structures_summary:
       columns:
+        file_id:                    { type: int64, pk: true, ref: input_files.file_id, on_delete: cascade }
         has_tracks:                 { type: bool, default: true }
         track_count:                { type: int64 }
         attachment_count:           { type: int64 }
@@ -193,31 +231,43 @@ schemas:
 
     mkv_cues:
       columns:
+        file_id:           { type: int64, ref: input_files.file_id, on_delete: cascade }
         cue_time:          { type: int64 }
         track_number:      { type: int64 }
         cluster_position:  { type: int64 }
         in_segment_bounds: { type: bool, default: true }
+      indexes:
+        - file_id
 
     mkv_lacing_anomalies:
       columns:
+        file_id:      { type: int64, ref: input_files.file_id, on_delete: cascade }
         offset:       { type: int64 }
         lacing_kind:  { type: int64 }
         frame_count:  { type: int64 }
         payload_size: { type: int64 }
+      indexes:
+        - file_id
 
     mkv_tracks:
       columns:
-        track_number:       { type: int64, pk: true }
+        file_id:            { type: int64, ref: input_files.file_id, on_delete: cascade }
+        track_number:       { type: int64 }
         track_type:         { type: text }
         codec_id:           { type: text }
         pixel_width:        { type: int64 }
         pixel_height:       { type: int64 }
         codec_private_size: { type: int64 }
+      primary_key:
+        - file_id
+        - track_number
       indexes:
+        - file_id
         - codec_id
 
     riff_triage:
       columns:
+        file_id:             { type: int64, pk: true, ref: input_files.file_id, on_delete: cascade }
         form_type:           { type: text }
         file_size:           { type: int64, default: 0 }
         root_size:           { type: int64 }
@@ -234,6 +284,7 @@ schemas:
 
     avi_stream_headers:
       columns:
+        file_id:          { type: int64, ref: input_files.file_id, on_delete: cascade }
         stream_index:     { type: int64 }
         fcc_type:         { type: text }
         fcc_handler:      { type: text }
@@ -251,10 +302,13 @@ schemas:
         bi_size_image:    { type: int64, default: 0 }
         bi_clr_used:      { type: int64, default: 0 }
         dim_mul_overflow: { type: bool, default: false }
+      indexes:
+        - file_id
 
     riff_chunks:
       columns:
-        region_id:        { type: int64, pk: true }
+        file_id:          { type: int64, ref: input_files.file_id, on_delete: cascade }
+        region_id:        { type: int64 }
         parent_region_id: { type: int64, nullable: true }
         depth:            { type: int64 }
         fourcc:           { type: text }
@@ -265,23 +319,31 @@ schemas:
         available_bytes:  { type: int64 }
         is_truncated:     { type: bool, default: false }
         is_overflow:      { type: bool, default: false }
+      primary_key:
+        - file_id
+        - region_id
       indexes:
+        - file_id
         - fourcc
         - role
 
     region_field_results:
       columns:
+        file_id:    { type: int64, ref: input_files.file_id, on_delete: cascade }
         tag:        { type: text }
         offset:     { type: int64 }
         field_kind: { type: text }
         u64_value:  { type: int64 }
         text_value: { type: text }
         in_bounds:  { type: bool, default: true }
+      indexes:
+        - file_id
 
   # 2. Structural Intermediate Representation (`ir_core`)
   ir_core:
     container_metadata:
       columns:
+        file_id:          { type: int64, pk: true, ref: input_files.file_id, on_delete: cascade }
         file_size:        { type: int64 }
         detected_format:  { type: int64, ref: enum_container_format.id }
         true_magic:       { type: int64 }
@@ -290,15 +352,20 @@ schemas:
 
     ir_regions:
       columns:
-        region_id:                { type: int64, pk: true }
-        parent_region_id:         { type: int64, nullable: true, ref: ir_regions.region_id }
+        file_id:                  { type: int64, ref: input_files.file_id, on_delete: cascade }
+        region_id:                { type: int64 }
+        parent_region_id:         { type: int64, nullable: true }
         tag_name:                 { type: text }
         role:                     { type: text }
         header_offset:            { type: int64 }
         payload_offset:           { type: int64 }
         effective_end_offset:     { type: int64 }
         is_truncated_or_overflow: { type: bool, default: false }
+      primary_key:
+        - file_id
+        - region_id
       indexes:
+        - file_id
         - role
         - tag_name
 
@@ -306,55 +373,86 @@ schemas:
   ir_deep:
     ir_sample_runs:
       columns:
-        run_id:       { type: int64, pk: true }
+        file_id:      { type: int64, ref: input_files.file_id, on_delete: cascade }
+        run_id:       { type: int64 }
         track_id:     { type: int64 }
         start_offset: { type: int64 }
         byte_length:  { type: int64 }
         end_offset:   { type: int64 }
         sample_count: { type: int64, default: 1 }
+      primary_key:
+        - file_id
+        - run_id
       indexes:
+        - file_id
         - start_offset
         - track_id
 
     ir_unreferenced_slack:
       columns:
-        slack_id:    { type: int64, pk: true }
+        file_id:     { type: int64, ref: input_files.file_id, on_delete: cascade }
+        slack_id:    { type: int64 }
         region_tag:  { type: text }
         file_offset: { type: int64 }
         byte_length: { type: int64 }
+      primary_key:
+        - file_id
+        - slack_id
+      indexes:
+        - file_id
 
     ir_codec_configs:
       columns:
-        config_id:       { type: int64, pk: true }
-        track_id:        { type: int64 }
-        codec_tag:       { type: text }
-        container_width: { type: int64 }
+        file_id:          { type: int64, ref: input_files.file_id, on_delete: cascade }
+        config_id:        { type: int64 }
+        track_id:         { type: int64 }
+        track_kind:       { type: text, default: "'video'" }
+        codec_tag:        { type: text }
+        container_width:  { type: int64 }
         container_height: { type: int64 }
-        bitstream_width: { type: int64 }
+        bitstream_width:  { type: int64 }
         bitstream_height: { type: int64 }
-        is_mismatch:     { type: bool, default: false }
+        is_mismatch:      { type: bool, default: false }
+      primary_key:
+        - file_id
+        - config_id
+      indexes:
+        - file_id
 
     ir_attachments:
       columns:
-        attachment_id:  { type: int64, pk: true }
+        file_id:        { type: int64, ref: input_files.file_id, on_delete: cascade }
+        attachment_id:  { type: int64 }
         file_name:      { type: text }
         mime_type:      { type: text }
         payload_offset: { type: int64 }
         payload_length: { type: int64 }
+      primary_key:
+        - file_id
+        - attachment_id
+      indexes:
+        - file_id
 
     ir_external_refs:
       columns:
-        ref_id:      { type: int64, pk: true }
+        file_id:     { type: int64, ref: input_files.file_id, on_delete: cascade }
+        ref_id:      { type: int64 }
         track_id:    { type: int64 }
         source_tag:  { type: text }
         file_offset: { type: int64 }
         target_url:  { type: text }
+      primary_key:
+        - file_id
+        - ref_id
+      indexes:
+        - file_id
 
   # 4. Security Audit & Forensic Findings (`audit`)
   audit:
     audit_findings:
       columns:
         finding_id:         { type: int64, pk: true }
+        file_id:            { type: int64, nullable: true, ref: input_files.file_id, on_delete: cascade }
         rule_id:            { type: text }
         severity:           { type: int64, ref: enum_severity.level }
         file_offset:        { type: int64 }
@@ -366,6 +464,7 @@ schemas:
         is_remediated:      { type: bool, default: false }
         remediation_action: { type: text, default: "'UNRESOLVED'" }
       indexes:
+        - file_id
         - rule_id
         - severity
         - is_remediated
@@ -373,6 +472,7 @@ schemas:
     remediation_outcomes:
       columns:
         outcome_id:        { type: int64, pk: true }
+        file_id:           { type: int64, nullable: true, ref: input_files.file_id, on_delete: cascade }
         action:            { type: text }
         rule_id:           { type: text }
         offset:            { type: int64, default: 0 }
@@ -380,3 +480,5 @@ schemas:
         new_size:          { type: int64, default: 0 }
         applied:           { type: bool, default: false }
         requires_reverify: { type: bool, default: false }
+      indexes:
+        - file_id

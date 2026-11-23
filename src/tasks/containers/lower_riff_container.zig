@@ -58,20 +58,27 @@ pub const Service = struct {
             }
 
             for (avi_res.streams, 1..) |st, idx| {
-                if (st.video) |v| {
-                    const w: i64 = @max(0, v.width);
-                    const h: i64 = if (v.height < 0) -@as(i64, v.height) else @as(i64, v.height);
-                    try codec_configs.append(alloc, .{
-                        .config_id = @intCast(idx),
-                        .track_id = @intCast(st.stream_index),
-                        .codec_tag = try alloc.dupe(u8, &st.fcc_handler),
-                        .container_width = w,
-                        .container_height = h,
-                        .bitstream_width = w,
-                        .bitstream_height = h,
-                        .is_mismatch = false,
-                    });
-                }
+                const kind: []const u8 = if (std.mem.eql(u8, &st.fcc_type, "vids"))
+                    "video"
+                else if (std.mem.eql(u8, &st.fcc_type, "auds"))
+                    "audio"
+                else if (std.mem.eql(u8, &st.fcc_type, "txts"))
+                    "subtitle"
+                else
+                    "other";
+                const w: i64 = if (st.video) |v| @max(0, v.width) else 0;
+                const h: i64 = if (st.video) |v| (if (v.height < 0) -@as(i64, v.height) else @as(i64, v.height)) else 0;
+                try codec_configs.append(alloc, .{
+                    .config_id = @intCast(idx),
+                    .track_id = @intCast(st.stream_index),
+                    .track_kind = kind,
+                    .codec_tag = try alloc.dupe(u8, &st.fcc_handler),
+                    .container_width = w,
+                    .container_height = h,
+                    .bitstream_width = w,
+                    .bitstream_height = h,
+                    .is_mismatch = false,
+                });
             }
         }
 

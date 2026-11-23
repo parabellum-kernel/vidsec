@@ -21,7 +21,7 @@ runtime:
 
 extensions:
   inbound_cli: {}
-  tui_inbound: {}
+  vidsec_tui: {}
   opentelemetry:
     file: "${OTEL_EXPORTER_FILE_PATH:-./configs/data/logs/otel_export.json}"
     console: "${OTEL_LOG_CONSOLE:-false}"
@@ -61,6 +61,7 @@ imports:
   - pipelines/cve_mkv.yaml
   - pipelines/cve_avi.yaml
   - pipelines/forensics_ir.yaml
+  - pipelines/attachments.yaml
 
 pipelines:
   ingest:
@@ -69,6 +70,9 @@ pipelines:
       - id: open_input_file
         uses: analyzer/open_file
         from: jobs
+        outputs:
+          input_files:
+            datasource: audit_db
       - router: route_to_main
         default: main
 
@@ -140,6 +144,8 @@ pipelines:
             datasource: pipeline_memory
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           quarantine_orders:
             datasource: pipeline_memory
 
@@ -151,7 +157,9 @@ pipelines:
         where: "triage_passed == true and detected_family == 'isobmff'"
         outputs:
           isobmff_triage:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           isobmff_boxes:
             datasource: pipeline_memory
 
@@ -160,20 +168,30 @@ pipelines:
         where: "triage_passed == true and detected_family == 'isobmff' and isobmff_valid == true"
         outputs:
           mp4_atoms_summary:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           mp4_tracks:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           mp4_table_measurements:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           mp4_codec_headers:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       - id: dissect_ebml
         uses: analyzer/dissect_ebml
         where: "triage_passed == true and detected_family == 'ebml'"
         outputs:
           ebml_triage:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ebml_elements:
             datasource: pipeline_memory
 
@@ -182,9 +200,13 @@ pipelines:
         where: "triage_passed == true and detected_family == 'ebml' and ebml_valid == true"
         outputs:
           mkv_structures_summary:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           mkv_tracks:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           mkv_cues:
             datasource: pipeline_memory
           mkv_lacing_anomalies:
@@ -195,11 +217,15 @@ pipelines:
         where: "triage_passed == true and detected_family == 'riff'"
         outputs:
           riff_triage:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           riff_chunks:
             datasource: pipeline_memory
           avi_stream_headers:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       # -----------------------------------------------------------------------
       # STAGE 1c: Pure Universal IR Lowering (zero audit_findings)
@@ -210,16 +236,24 @@ pipelines:
         outputs:
           container_metadata:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ir_regions:
             datasource: pipeline_memory
           ir_sample_runs:
             datasource: pipeline_memory
           ir_codec_configs:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ir_attachments:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ir_external_refs:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       - id: lower_mkv
         uses: analyzer/lower_ebml_container
@@ -227,16 +261,24 @@ pipelines:
         outputs:
           container_metadata:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ir_regions:
             datasource: pipeline_memory
           ir_sample_runs:
             datasource: pipeline_memory
           ir_codec_configs:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ir_attachments:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ir_external_refs:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       - id: lower_riff
         uses: analyzer/lower_riff_container
@@ -244,16 +286,24 @@ pipelines:
         outputs:
           container_metadata:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ir_regions:
             datasource: pipeline_memory
           ir_sample_runs:
             datasource: pipeline_memory
           ir_codec_configs:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ir_attachments:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           ir_external_refs:
-            datasource: pipeline_memory
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       # -----------------------------------------------------------------------
       # STAGE 3: CDR Subscribers & Quarantine Sink (ARCH-036)
@@ -266,6 +316,8 @@ pipelines:
             datasource: artifacts
           remediation_outcomes:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       - id: sanitize_zero_out
         uses: analyzer/apply_zero_out
@@ -275,6 +327,8 @@ pipelines:
             datasource: artifacts
           remediation_outcomes:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       - id: execute_quarantine
         uses: analyzer/apply_quarantine
@@ -284,3 +338,5 @@ pipelines:
             datasource: quarantine
           remediation_outcomes:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id

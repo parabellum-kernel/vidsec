@@ -61,18 +61,26 @@ pub const Service = struct {
         }
 
         for (dissected.tracks, 1..) |t, idx| {
-            if (t.width > 0 or t.avcc != null or t.esds != null) {
-                try codec_configs.append(alloc, .{
-                    .config_id = @intCast(idx),
-                    .track_id = @intCast(t.track_id),
-                    .codec_tag = try alloc.dupe(u8, &t.codec_fourcc.bytes),
-                    .container_width = t.width,
-                    .container_height = t.height,
-                    .bitstream_width = t.width,
-                    .bitstream_height = t.height,
-                    .is_mismatch = false,
-                });
-            }
+            const h = &t.handler_type.bytes;
+            const kind: []const u8 = if (std.mem.eql(u8, h, "vide"))
+                "video"
+            else if (std.mem.eql(u8, h, "soun"))
+                "audio"
+            else if (std.mem.eql(u8, h, "subt") or std.mem.eql(u8, h, "sbtl") or std.mem.eql(u8, h, "text"))
+                "subtitle"
+            else
+                "other";
+            try codec_configs.append(alloc, .{
+                .config_id = @intCast(idx),
+                .track_id = @intCast(t.track_id),
+                .track_kind = kind,
+                .codec_tag = try alloc.dupe(u8, &t.codec_fourcc.bytes),
+                .container_width = t.width,
+                .container_height = t.height,
+                .bitstream_width = t.width,
+                .bitstream_height = t.height,
+                .is_mismatch = false,
+            });
         }
 
         for (dissected.attachments, 1..) |att, idx| {

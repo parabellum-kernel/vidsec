@@ -18,8 +18,12 @@ pipelines:
         outputs:
           region_field_results:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           quarantine_orders:
             datasource: pipeline_memory
           patch_orders:
@@ -38,6 +42,8 @@ pipelines:
         outputs:
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           quarantine_orders:
             datasource: pipeline_memory
           tombstone_orders:
@@ -53,6 +59,8 @@ pipelines:
         outputs:
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
           quarantine_orders:
             datasource: pipeline_memory
           tombstone_orders:

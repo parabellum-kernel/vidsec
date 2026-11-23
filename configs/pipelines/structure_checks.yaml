@@ -11,6 +11,8 @@ pipelines:
             datasource: pipeline_memory
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       - id: check_mkv_structure
         uses: analyzer/check_mkv_structure
@@ -20,6 +22,8 @@ pipelines:
             datasource: pipeline_memory
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
       - id: check_avi_structure
         uses: analyzer/check_avi_structure
@@ -29,4 +33,6 @@ pipelines:
             datasource: pipeline_memory
           audit_findings:
             datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
 
