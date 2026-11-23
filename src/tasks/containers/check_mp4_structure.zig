@@ -4,6 +4,7 @@ const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
 const dissect_isobmff = @import("dissect_isobmff.zig");
 const dissect_mp4_atoms = @import("dissect_mp4_atoms.zig");
+const common = @import("common.zig");
 
 pub const Inputs = struct {
     isobmff_triage: dissect_isobmff.IsobmffTriageRow,
@@ -21,7 +22,9 @@ pub const Outputs = abi.Channels(OutputsData);
 
 /// Stage 1b format-specific structural validator for ISOBMFF/MP4 (`R03`, `R04a`, `R09a`).
 pub const Service = struct {
-    pub fn execute(_: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
+    logger: abi.Logger = .{},
+
+    pub fn execute(self: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
         var findings: std.ArrayList(media_ir.AuditFindingRow) = .empty;
         errdefer findings.deinit(alloc);
 
@@ -122,6 +125,7 @@ pub const Service = struct {
             }
         }
 
+        common.logFindings(self.logger, findings.items);
         const findings_slice = try findings.toOwnedSlice(alloc);
         return .{ .data = .{
             .mp4_structure_valid = findings_slice.len == 0,

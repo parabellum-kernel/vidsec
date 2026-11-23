@@ -4,6 +4,7 @@ const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
 const dissect_ebml = @import("dissect_ebml.zig");
 const dissect_mkv_structures = @import("dissect_mkv_structures.zig");
+const common = @import("common.zig");
 
 pub const Inputs = struct {
     ebml_triage: dissect_ebml.EbmlTriageRow,
@@ -23,7 +24,9 @@ pub const Outputs = abi.Channels(OutputsData);
 
 /// Stage 1b format-specific structural validator for EBML/Matroska (`R03`, `R04`, `R09`).
 pub const Service = struct {
-    pub fn execute(_: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
+    logger: abi.Logger = .{},
+
+    pub fn execute(self: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
         var findings: std.ArrayList(media_ir.AuditFindingRow) = .empty;
         errdefer findings.deinit(alloc);
 
@@ -158,6 +161,7 @@ pub const Service = struct {
             }
         }
 
+        common.logFindings(self.logger, findings.items);
         const findings_slice = try findings.toOwnedSlice(alloc);
         return .{ .data = .{
             .mkv_structure_valid = findings_slice.len == 0,

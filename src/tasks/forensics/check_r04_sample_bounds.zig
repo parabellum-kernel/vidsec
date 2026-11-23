@@ -3,6 +3,7 @@ const Allocator = std.mem.Allocator;
 const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
 const orders = @import("../remediation/orders.zig");
+const common = @import("../containers/common.zig");
 
 pub const Inputs = struct {
     file_size: u64,
@@ -20,7 +21,9 @@ pub const Outputs = abi.Channels(OutputsData);
 
 /// Stage 2 R04 validator: verifies `SampleRuns ⊆ media_data` and `end_offset <= file_size`.
 pub const Service = struct {
-    pub fn execute(_: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
+    logger: abi.Logger = .{},
+
+    pub fn execute(self: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
         const facts = try media_ir.detectInconsistencies(
             alloc,
             inputs.file_size,
@@ -89,6 +92,7 @@ pub const Service = struct {
             }
         }
 
+        common.logFindings(self.logger, findings.items);
         return .{ .data = .{
             .audit_findings = try findings.toOwnedSlice(alloc),
             .quarantine_orders = try quarantines.toOwnedSlice(alloc),

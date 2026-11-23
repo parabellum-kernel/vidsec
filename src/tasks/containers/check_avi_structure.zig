@@ -3,6 +3,7 @@ const Allocator = std.mem.Allocator;
 const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
 const dissect_riff = @import("dissect_riff.zig");
+const common = @import("common.zig");
 
 pub const Inputs = struct {
     riff_triage: dissect_riff.RiffTriageRow,
@@ -19,7 +20,9 @@ pub const Outputs = abi.Channels(OutputsData);
 
 /// Stage 1b format-specific structural validator for RIFF/AVI (`R01`, `R03`, `R09`).
 pub const Service = struct {
-    pub fn execute(_: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
+    logger: abi.Logger = .{},
+
+    pub fn execute(self: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
         var findings: std.ArrayList(media_ir.AuditFindingRow) = .empty;
         errdefer findings.deinit(alloc);
 
@@ -137,6 +140,7 @@ pub const Service = struct {
             });
         }
 
+        common.logFindings(self.logger, findings.items);
         const findings_slice = try findings.toOwnedSlice(alloc);
         return .{ .data = .{
             .avi_structure_valid = findings_slice.len == 0,

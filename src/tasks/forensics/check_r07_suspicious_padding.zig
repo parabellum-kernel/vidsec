@@ -5,6 +5,7 @@ const media_ir = @import("media_ir");
 const vidsec_magic = @import("vidsec_magic");
 const vidsec_math = @import("vidsec_math");
 const orders = @import("../remediation/orders.zig");
+const common = @import("../containers/common.zig");
 
 pub const Inputs = struct {
     stream: abi.BoundedStreamReader,
@@ -51,7 +52,9 @@ pub fn maxMultiWindowEntropy(stream: *const abi.BoundedStreamReader, region_offs
 /// Stage 2 R07 validator: scans `padding` and `unknown` regions across 3 windows (`start`, `mid`, `end`)
 /// for embedded signatures (catching zero-diluted `goloader`) and high Shannon entropy.
 pub const Service = struct {
-    pub fn execute(_: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
+    logger: abi.Logger = .{},
+
+    pub fn execute(self: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
         var findings: std.ArrayList(media_ir.AuditFindingRow) = .empty;
         errdefer findings.deinit(alloc);
         var zero_orders: std.ArrayList(orders.ZeroOutOrder) = .empty;
@@ -113,6 +116,7 @@ pub const Service = struct {
             }
         }
 
+        common.logFindings(self.logger, findings.items);
         return .{ .data = .{
             .audit_findings = try findings.toOwnedSlice(alloc),
             .zero_out_orders = try zero_orders.toOwnedSlice(alloc),

@@ -36,3 +36,14 @@ pub fn streamToSource(comptime SourceT: type, reader: *const abi.BoundedStreamRe
         .file_size = reader.len(),
     };
 }
+
+/// Emits structured task_log events to TelemetryBus (TUI + OTel + trace.jsonl) for each finding.
+pub fn logFindings(logger: abi.Logger, findings: []const media_ir.AuditFindingRow) void {
+    for (findings) |f| {
+        if (f.severity >= 4) {
+            logger.err("Finding [{s}] sev={d} region={s}: {s}", .{ f.rule_id, f.severity, f.region_tag orelse "", f.message orelse "" });
+        } else {
+            logger.warn("Finding [{s}] sev={d} region={s}: {s}", .{ f.rule_id, f.severity, f.region_tag orelse "", f.message orelse "" });
+        }
+    }
+}

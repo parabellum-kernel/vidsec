@@ -5,6 +5,7 @@ const media_ir = @import("media_ir");
 const tika = @import("tika");
 const vidsec_magic = @import("vidsec_magic");
 const orders = @import("../remediation/orders.zig");
+const common = @import("../containers/common.zig");
 
 pub const Inputs = struct {
     stream: abi.BoundedStreamReader,
@@ -34,7 +35,9 @@ fn endsWithIgnoreCase(haystack: []const u8, suffix: []const u8) bool {
 /// Stage 2 R06 validator: inspects embedded attachments for path traversal,
 /// executable/script payloads, risky fonts (.ttf/.otf), and MIME spoofing.
 pub const Service = struct {
-    pub fn execute(_: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
+    logger: abi.Logger = .{},
+
+    pub fn execute(self: *const Service, alloc: Allocator, inputs: Inputs) !Outputs {
         var findings: std.ArrayList(media_ir.AuditFindingRow) = .empty;
         errdefer findings.deinit(alloc);
         var quarantines: std.ArrayList(orders.QuarantineOrder) = .empty;
@@ -152,6 +155,7 @@ pub const Service = struct {
             }
         }
 
+        common.logFindings(self.logger, findings.items);
         return .{ .data = .{
             .audit_findings = try findings.toOwnedSlice(alloc),
             .quarantine_orders = try quarantines.toOwnedSlice(alloc),
