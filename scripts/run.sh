@@ -48,10 +48,24 @@ chmod 755 "$VIDSEC_ROOT"/zig-out/lib/*.so 2>/dev/null || true
 CMD="${1:-tui}"
 if [[ "$CMD" == "tui" || "$CMD" == "-t" || "$CMD" == "--tui" || "$CMD" == "serve" || "$CMD" == "-s" || "$CMD" == "--serve" ]]; then
     shift || true
+    mkdir -p "$VIDSEC_ROOT/data/logs"
+    ENGINE_LOG_FILE="$VIDSEC_ROOT/data/logs/engine_$(date +%Y%m%d_%H%M%S).log"
     echo "==> Starting Parabellum Engine with VidSec TUI ('$PIPELINE')..."
     echo "==> Caller directory -> $VIDSEC_CALLER_PWD"
-    exec "$ENGINE_BIN" --plugin-dir "$PARABELLUM_PLUGIN_DIR" \
-        --serve --transport vidsec_tui --pipeline "$PIPELINE" "$@"
+    echo "==> Engine stderr log -> $ENGINE_LOG_FILE"
+    cleanup_engine_log() {
+        if [ -f "$ENGINE_LOG_FILE" ] && [ ! -s "$ENGINE_LOG_FILE" ]; then
+            rm -f "$ENGINE_LOG_FILE"
+        fi
+    }
+    trap cleanup_engine_log EXIT
+    set +e
+    "$ENGINE_BIN" --plugin-dir "$PARABELLUM_PLUGIN_DIR" \
+        --serve --transport vidsec_tui --pipeline "$PIPELINE" "$@" 2>> "$ENGINE_LOG_FILE"
+    rc=$?
+    set -e
+    cleanup_engine_log
+    exit "$rc"
 elif [[ "$CMD" == "validate" || "$CMD" == "-v" || "$CMD" == "--validate" ]]; then
     shift || true
     echo "==> Validating pipeline '$PIPELINE'..."
