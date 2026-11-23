@@ -130,20 +130,6 @@ pub const Service = struct {
                 .{ f.rule_id, f.severity, f.region_tag orelse "", f.message orelse "" },
             );
         }
-        if (should_quarantine) {
-            self.logger.err("Stage 0 verdict: QUARANTINE (size_valid={} is_video={} is_hostile={} exec={} script={} tail_polyglot={})", .{
-                inputs.size_valid,
-                inputs.is_video,
-                inputs.is_hostile,
-                inputs.has_embedded_executable,
-                inputs.has_suspicious_script,
-                inputs.has_tail_polyglot,
-            });
-        } else if (!triage_passed) {
-            self.logger.warn("Stage 0 verdict: REJECTED (extension_violation={})", .{inputs.extension_violation});
-        } else {
-            self.logger.info("Stage 0 verdict: PASSED", .{});
-        }
 
         return .{
             .data = .{

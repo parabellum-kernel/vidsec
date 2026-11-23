@@ -16,6 +16,10 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const ext_dep = b.dependency("parabellum_extensions", .{
+        .target = target,
+        .optimize = optimize,
+    });
     const media_ir_mod = libs_dep.module("media_ir");
     const isobmff_mod = libs_dep.module("isobmff");
     const ebml_mod = libs_dep.module("ebml");
@@ -51,6 +55,16 @@ pub fn build(b: *std.Build) void {
         "src/catalog.zig",
     );
     analyzer_lib.root_module.addImport("parabellum_sdk", sdk_dep.module("parabellum_sdk"));
+
+    const tui_mod = ext_dep.module("tui_inbound");
+    const vidsec_tui_so = sdk_build.addExtensionPlugin(b, sdk_dep, .{
+        .name = "vidsec_tui",
+        .root_source_file = b.path("src/tui_plugin.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    vidsec_tui_so.root_module.addImport("tui_inbound", tui_mod);
+    b.installArtifact(vidsec_tui_so);
 
     const test_step = b.step("test", "Run Vidsec pure-SDK unit tests");
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = magic_mod })).step);

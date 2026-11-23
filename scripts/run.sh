@@ -4,6 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VIDSEC_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Preserve caller's working directory so the TUI file explorer opens where the user invoked the script.
+export VIDSEC_CALLER_PWD="${VIDSEC_CALLER_PWD:-$PWD}"
+
 export PATH="/opt/zig:/usr/local/bin:$PATH"
 
 # Load .env if present
@@ -22,25 +25,33 @@ PIPELINE="${PIPELINE_PATH:-$VIDSEC_ROOT/configs/pipeline.yaml}"
 
 cd "$VIDSEC_ROOT"
 
-if [ -f "$SCRIPT_DIR/build.sh" ]; then
-    echo "==> Building external drivers & extensions..."
-    "$SCRIPT_DIR/build.sh"
+REBUILD=false
+if [[ "${1:-}" == "--rebuild" || "${1:-}" == "-b" ]]; then
+    REBUILD=true
+    shift
 fi
 
-echo "==> Building VidSec plugin..."
-zig build
+if [[ "$REBUILD" == "true" || ! -f "$VIDSEC_ROOT/zig-out/lib/libext_opentelemetry.so" ]]; then
+    if [ -f "$SCRIPT_DIR/build.sh" ]; then
+        echo "==> Building external drivers & extensions..."
+        "$SCRIPT_DIR/build.sh"
+    fi
+fi
+
+if [[ "$REBUILD" == "true" || ! -f "$VIDSEC_ROOT/zig-out/lib/libanalyzer.so" || ! -f "$VIDSEC_ROOT/zig-out/lib/libext_vidsec_tui.so" ]]; then
+    echo "==> Building VidSec plugin & TUI..."
+    zig build
+fi
 
 chmod 755 "$VIDSEC_ROOT"/zig-out/lib/*.so 2>/dev/null || true
-LOG_FILE="${VIDSEC_LOG_FILE:-$VIDSEC_ROOT/data/logs/engine.log}"
-mkdir -p "$(dirname "$LOG_FILE")"
 
 CMD="${1:-tui}"
 if [[ "$CMD" == "tui" || "$CMD" == "-t" || "$CMD" == "--tui" || "$CMD" == "serve" || "$CMD" == "-s" || "$CMD" == "--serve" ]]; then
     shift || true
-    echo "==> Starting Parabellum Engine with TUI ('$PIPELINE')..."
-    echo "==> Engine stderr logs -> $LOG_FILE"
+    echo "==> Starting Parabellum Engine with VidSec TUI ('$PIPELINE')..."
+    echo "==> Caller directory -> $VIDSEC_CALLER_PWD"
     exec "$ENGINE_BIN" --plugin-dir "$PARABELLUM_PLUGIN_DIR" \
-        --serve --transport tui --pipeline "$PIPELINE" "$@" 2>> "$LOG_FILE"
+        --serve --transport vidsec_tui --pipeline "$PIPELINE" "$@"
 elif [[ "$CMD" == "validate" || "$CMD" == "-v" || "$CMD" == "--validate" ]]; then
     shift || true
     echo "==> Validating pipeline '$PIPELINE'..."
