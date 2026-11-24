@@ -66,6 +66,16 @@ pub fn build(b: *std.Build) void {
     vidsec_tui_so.root_module.addImport("tui_inbound", tui_mod);
     b.installArtifact(vidsec_tui_so);
 
+    const vidsec_tui_a = sdk_build.addExtensionPlugin(b, sdk_dep, .{
+        .name = "vidsec_tui",
+        .root_source_file = b.path("src/tui_plugin.zig"),
+        .target = target,
+        .optimize = optimize,
+        .linkage = .static,
+    });
+    vidsec_tui_a.root_module.addImport("tui_inbound", tui_mod);
+    b.installArtifact(vidsec_tui_a);
+
     const test_step = b.step("test", "Run Vidsec pure-SDK unit tests");
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = magic_mod })).step);
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = math_mod })).step);

@@ -1,6 +1,11 @@
 {
+  "group": "org.parabellum.vidsec",
   "name": "vidsec",
   "version": "2.0.2",
+  "artifacts": {
+    "analyzer": ["libanalyzer"],
+    "tui": ["libext_vidsec_tui"]
+  },
   "repositories": [
     {
       "name": "local",
@@ -9,15 +14,35 @@
     }
   ],
   "dependencies": {
-    "parabellum": {
+    "org.parabellum:engine": {
       "version": "2.0.4",
       "repo": "local"
     },
-    "parabellum_drivers": {
+    "org.parabellum.drivers:memory": {
       "version": "2.0.4",
       "repo": "local"
     },
-    "parabellum_extensions": {
+    "org.parabellum.drivers:file_store": {
+      "version": "2.0.4",
+      "repo": "local"
+    },
+    "org.parabellum.drivers:sqlite": {
+      "version": "2.0.4",
+      "repo": "local"
+    },
+    "org.parabellum.extensions:opentelemetry": {
+      "version": "2.0.4",
+      "repo": "local"
+    },
+    "org.parabellum.extensions:trace_jsonl": {
+      "version": "2.0.4",
+      "repo": "local"
+    },
+    "org.parabellum.extensions:tui_inbound": {
+      "version": "2.0.4",
+      "repo": "local"
+    },
+    "org.parabellum.extensions:yaml_config": {
       "version": "2.0.4",
       "repo": "local"
     }
