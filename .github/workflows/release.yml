@@ -1,28 +1,30 @@
-name: Release Vidsec Plugin
+name: Release VidSec Portable
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 env:
   ZIG_VERSION: "0.17.1"
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci.yml
-
   build-and-release:
-    needs: ci
     permissions:
       contents: write
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
-            asset_suffix: linux-x86_64
-            lib_ext: so
+            profile: linux
+            archive: vidsec-*.tar.gz
           - os: macos-15
-            asset_suffix: macos-aarch64
-            lib_ext: dylib
+            profile: macos
+            archive: vidsec-*.tar.gz
+          - os: windows-latest
+            profile: windows
+            archive: vidsec-*.zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -32,13 +34,13 @@ jobs:
         with:
           version: ${{ vars.ZIG_VERSION || env.ZIG_VERSION }}
 
-      - name: Build release artifacts
-        run: |
-          zig build -Doptimize=ReleaseSafe
-          mkdir -p dist
-          cp zig-out/lib/libanalyzer.${{ matrix.lib_ext }} dist/libanalyzer-${{ matrix.asset_suffix }}.${{ matrix.lib_ext }}
+      - name: Package portable bundle
+        shell: bash
+        run: ./scripts/package-release.sh ${{ matrix.profile }}
 
       - name: Publish assets to vidsec Releases
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: |
+            zig-out/release/${{ matrix.archive }}
+            zig-out/release/*.sha256

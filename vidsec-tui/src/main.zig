@@ -20,52 +20,6 @@ fn registerVidsecDrivers(repos: *parabellum.repository.RepositoryRegistry) anyer
     try repos.registerAbiDriver("sqlite", &parabellum_driver_sqlite_manifest);
 }
 
-extern "c" fn setenv(name: [*:0]const u8, value: [*:0]const u8, overwrite: c_int) c_int;
-
-fn getEnv(name: [*:0]const u8) ?[]const u8 {
-    if (std.c.getenv(name)) |c_str| {
-        const s = std.mem.span(c_str);
-        if (s.len > 0) return s;
-    }
-    return null;
-}
-
-fn setDefaultEnv(arena: std.mem.Allocator, name: [*:0]const u8, val: []const u8) void {
-    if (getEnv(name) != null) return;
-    const z = arena.allocSentinel(u8, val.len, 0) catch return;
-    @memcpy(z, val);
-    _ = setenv(name, z.ptr, 0);
-}
-
-fn resolveDataDir(arena: std.mem.Allocator) ![]const u8 {
-    if (getEnv("VIDSEC_DATA_DIR")) |dir| return dir;
-    if (getEnv("XDG_DATA_HOME")) |xdg| return try std.fs.path.join(arena, &.{ xdg, "vidsec" });
-    if (getEnv("HOME")) |home| return try std.fs.path.join(arena, &.{ home, ".local", "share", "vidsec" });
-    return "./data";
-}
-
-fn resolveConfigFile(arena: std.mem.Allocator, filename: []const u8) ![]const u8 {
-    if (getEnv("VIDSEC_CONFIG_DIR")) |dir| {
-        return try std.fs.path.join(arena, &.{ dir, filename });
-    }
-    if (getEnv("PARABELLUM_CONFIG_DIR")) |pdir| {
-        return try std.fs.path.join(arena, &.{ pdir, "vidsec", filename });
-    }
-    if (getEnv("XDG_CONFIG_HOME")) |xdg| {
-        const p_path = try std.fs.path.join(arena, &.{ xdg, "parabellum", "vidsec", filename });
-        if (std.Io.Dir.cwd().access(std.Options.debug_io, p_path, .{})) |_| return p_path else |_| {}
-        const v_path = try std.fs.path.join(arena, &.{ xdg, "vidsec", filename });
-        if (std.Io.Dir.cwd().access(std.Options.debug_io, v_path, .{})) |_| return v_path else |_| {}
-    }
-    if (getEnv("HOME")) |home| {
-        const p_path = try std.fs.path.join(arena, &.{ home, ".config", "parabellum", "vidsec", filename });
-        if (std.Io.Dir.cwd().access(std.Options.debug_io, p_path, .{})) |_| return p_path else |_| {}
-        const v_path = try std.fs.path.join(arena, &.{ home, ".config", "vidsec", filename });
-        if (std.Io.Dir.cwd().access(std.Options.debug_io, v_path, .{})) |_| return v_path else |_| {}
-    }
-    return try std.fs.path.join(arena, &.{ "configs", filename });
-}
-
 fn writeStdout(msg: []const u8) void {
     _ = std.c.write(std.c.STDOUT_FILENO, msg.ptr, msg.len);
 }
@@ -149,19 +103,24 @@ pub fn main(init: std.process.Init) !u8 {
         try kernel.use(ext);
     }
 
+    const app_paths = parabellum.platform.app_paths;
+    app_paths.exportExeDirEnv(arena);
+    const early_env = try app_paths.resolveConfigFile(arena, "VIDSEC", "vidsec", ".env");
+    _ = parabellum.yaml.env.loadDotEnvFile(arena, early_env);
+
     const pipeline_path = if (args.len >= 3 and std.mem.eql(u8, args[1], "--pipeline"))
         args[2]
     else
-        try resolveConfigFile(arena, "pipeline.yaml");
+        try app_paths.resolveConfigFile(arena, "VIDSEC", "vidsec", "pipeline.yaml");
 
-    const caps_path = try resolveConfigFile(arena, "capabilities.yaml");
-    const schema_path = try resolveConfigFile(arena, "schemas.yaml");
+    const caps_path = try app_paths.resolveConfigFile(arena, "VIDSEC", "vidsec", "capabilities.yaml");
+    const schema_path = try app_paths.resolveConfigFile(arena, "VIDSEC", "vidsec", "schemas.yaml");
     parabellum.yaml.env.loadDotEnvForPipeline(arena, pipeline_path);
-    const data_dir = try resolveDataDir(arena);
-    setDefaultEnv(arena, "VIDSEC_SCHEMA_PATH", schema_path);
-    setDefaultEnv(arena, "VIDSEC_DB_PATH", try std.fs.path.join(arena, &.{ data_dir, "vidsec_state.db" }));
-    setDefaultEnv(arena, "VIDSEC_ARTIFACTS_DIR", try std.fs.path.join(arena, &.{ data_dir, "artifacts" }));
-    setDefaultEnv(arena, "VIDSEC_QUARANTINE_DIR", try std.fs.path.join(arena, &.{ data_dir, "quarantine" }));
+    const data_dir = try app_paths.resolveDataDir(arena, "VIDSEC", "vidsec");
+    app_paths.setDefaultEnv(arena, "VIDSEC_SCHEMA_PATH", schema_path);
+    app_paths.setDefaultEnv(arena, "VIDSEC_DB_PATH", try std.fs.path.join(arena, &.{ data_dir, "vidsec_state.db" }));
+    app_paths.setDefaultEnv(arena, "VIDSEC_ARTIFACTS_DIR", try std.fs.path.join(arena, &.{ data_dir, "artifacts" }));
+    app_paths.setDefaultEnv(arena, "VIDSEC_QUARANTINE_DIR", try std.fs.path.join(arena, &.{ data_dir, "quarantine" }));
     var loaded_catalog: ?sdk.capabilities.CapabilityCatalog = yaml_config.loadCapabilityCatalogFile(arena, caps_path) catch null;
     if (loaded_catalog) |cat| {
         if (cat.capabilities.len > 0 or cat.events.len > 0) {

@@ -70,6 +70,16 @@
         "mode": "sidecar",
         "outputs": ["{input}.sig"],
         "command": ["cosign", "sign-blob", "--output-signature", "{input}.sig", "{input}"]
+      },
+      "tar-pack": {
+        "mode": "sidecar",
+        "outputs": ["{input}.tar.gz"],
+        "command": ["tar", "-czf", "{input}.tar.gz", "--exclude=*.tar.gz", "--exclude=*.zip", "-C", "zig-out/dist", ".", "-C", "../../..", "configs", "README.md"]
+      },
+      "zip-pack": {
+        "mode": "sidecar",
+        "outputs": ["{input}.zip"],
+        "command": ["tar", "-a", "-cf", "{input}.zip", "--exclude=*.tar.gz", "--exclude=*.zip", "-C", "zig-out/dist", ".", "-C", "../../..", "configs", "README.md"]
       }
     },
     "profiles": {
@@ -78,15 +88,33 @@
         "target": "x86_64-linux-gnu",
         "strip": true
       },
+      "linux-portable": {
+        "format": "bin",
+        "target": "x86_64-linux-gnu",
+        "strip": true,
+        "packagers": ["tar-pack"]
+      },
       "macos": {
         "format": "bin",
         "target": "aarch64-macos",
         "strip": true
       },
+      "macos-portable": {
+        "format": "bin",
+        "target": "aarch64-macos",
+        "strip": true,
+        "packagers": ["tar-pack"]
+      },
       "windows": {
         "format": "bin",
         "target": "x86_64-windows-gnu",
         "strip": true
+      },
+      "windows-portable": {
+        "format": "bin",
+        "target": "x86_64-windows-gnu",
+        "strip": true,
+        "packagers": ["zip-pack"]
       },
       "deb": {
         "format": "bin",
