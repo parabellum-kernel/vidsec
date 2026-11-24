@@ -1,7 +1,6 @@
 {
   "group": "org.parabellum.vidsec",
   "name": "vidsec_tui",
-  "version": "2.0.2",
   "repositories": [
     {
       "name": "local",
@@ -11,23 +10,23 @@
   ],
   "dependencies": {
     "org.parabellum.vidsec:libvidsec": {
-      "version": "2.0.2",
+      "version": "2.0.5",
       "repo": "local"
     },
     "org.parabellum.extensions:opentelemetry": {
-      "version": "2.0.4",
+      "version": "2.0.5",
       "repo": "local"
     },
     "org.parabellum.extensions:trace_jsonl": {
-      "version": "2.0.4",
+      "version": "2.0.5",
       "repo": "local"
     },
     "org.parabellum.extensions:yaml_config": {
-      "version": "2.0.4",
+      "version": "2.0.5",
       "repo": "local"
     },
     "org.parabellum.extensions:tui_inbound": {
-      "version": "2.0.4",
+      "version": "2.0.5",
       "repo": "local"
     }
   },
@@ -39,12 +38,12 @@
       "deb-pack": {
         "mode": "sidecar",
         "outputs": ["{input}.deb"],
-        "command": ["fpm", "-s", "dir", "-t", "deb", "-n", "vidsec-tui", "-v", "2.0.2", "-p", "{input}.deb", "{input}"]
+        "command": ["fpm", "-s", "dir", "-t", "deb", "-n", "vidsec-tui", "-v", "2.0.5", "-p", "{input}.deb", "{input}"]
       },
       "rpm-pack": {
         "mode": "sidecar",
         "outputs": ["{input}.rpm"],
-        "command": ["fpm", "-s", "dir", "-t", "rpm", "-n", "vidsec-tui", "-v", "2.0.2", "-p", "{input}.rpm", "{input}"]
+        "command": ["fpm", "-s", "dir", "-t", "rpm", "-n", "vidsec-tui", "-v", "2.0.5", "-p", "{input}.rpm", "{input}"]
       },
       "appimage-pack": {
         "mode": "sidecar",

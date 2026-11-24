@@ -1,4 +1,5 @@
 const std = @import("std");
+const build_options = @import("build_options");
 const parabellum = @import("parabellum");
 const sdk = @import("parabellum_sdk");
 const abi = sdk.abi;
@@ -37,7 +38,7 @@ pub fn main(init: std.process.Init) !u8 {
     const args = try init.minimal.args.toSlice(arena);
 
     if (args.len >= 2 and (std.mem.eql(u8, args[1], "--version") or std.mem.eql(u8, args[1], "-V"))) {
-        writeStdout("vidsec 2.0.2 (cli monolith)\n");
+        writeStdout("vidsec " ++ build_options.version ++ " (cli monolith)\n");
         return 0;
     }
 
@@ -70,7 +71,7 @@ pub fn main(init: std.process.Init) !u8 {
     var dispatcher = parabellum.transport.inbound.InboundDispatcher.init(allocator, .{
         .app_name = "vidsec",
         .description = "VidSec Forensic Media Analysis CLI",
-        .version = "2.0.2",
+        .version = build_options.version,
         .kernel = &kernel,
     });
     defer dispatcher.deinit();

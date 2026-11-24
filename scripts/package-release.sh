@@ -15,7 +15,7 @@ if [ ! -x "$HIVE_BIN" ]; then
     exit 1
 fi
 
-VERSION="$(sed -nE 's/.*"version":[[:space:]]*"([^"]+)".*/\1/p' hive.json | head -n1)"
+VERSION="$(sed -nE 's/.*\.version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' vidsec-cli/build.zig.zon | head -n1)"
 REQ_PROFILE="${1:-linux}"
 
 package_one() {

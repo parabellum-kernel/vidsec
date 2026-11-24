@@ -1,7 +1,6 @@
 {
   "group": "org.parabellum.vidsec",
   "name": "libvidsec",
-  "version": "2.0.2",
   "repositories": [
     {
       "name": "local",
@@ -11,15 +10,15 @@
   ],
   "dependencies": {
     "org.parabellum.drivers:memory": {
-      "version": "2.0.4",
+      "version": "2.0.5",
       "repo": "local"
     },
     "org.parabellum.drivers:file_store": {
-      "version": "2.0.4",
+      "version": "2.0.5",
       "repo": "local"
     },
     "org.parabellum.drivers:sqlite": {
-      "version": "2.0.4",
+      "version": "2.0.5",
       "repo": "local"
     }
   },

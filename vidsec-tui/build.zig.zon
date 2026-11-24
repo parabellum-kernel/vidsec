@@ -1,6 +1,6 @@
 .{
     .name = .vidsec_tui,
-    .version = "2.0.2",
+    .version = "2.0.5",
     .minimum_zig_version = "0.17.1",
     .fingerprint = 0x4127d6e2f57fa8c3,
     .dependencies = .{

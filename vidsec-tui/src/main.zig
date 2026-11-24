@@ -1,4 +1,5 @@
 const std = @import("std");
+const build_options = @import("build_options");
 const parabellum = @import("parabellum");
 const sdk = @import("parabellum_sdk");
 const yaml_config = @import("yaml_config");
@@ -74,7 +75,7 @@ fn registerTuiTelemetry(k: *abi.extension.KernelHandle_ABI, api: *const abi.Kern
 
 const tui_telemetry_manifest = sdk.extension.Extension.define(.{
     .name = "vidsec_tui_telemetry",
-    .version = .{ .major = 2, .minor = 0, .patch = 2 },
+    .version = abi.SemVer_ABI.parse(build_options.version),
     .register = registerTuiTelemetry,
 });
 
@@ -84,7 +85,7 @@ pub fn main(init: std.process.Init) !u8 {
     const args = try init.minimal.args.toSlice(arena);
 
     if (args.len >= 2 and (std.mem.eql(u8, args[1], "--version") or std.mem.eql(u8, args[1], "-V"))) {
-        writeStdout("vidsec_tui 2.0.2 (tui monolith)\n");
+        writeStdout("vidsec_tui " ++ build_options.version ++ " (tui monolith)\n");
         return 0;
     }
 
@@ -131,7 +132,7 @@ pub fn main(init: std.process.Init) !u8 {
     var dispatcher = parabellum.transport.inbound.InboundDispatcher.init(allocator, .{
         .app_name = "vidsec_tui",
         .description = "VidSec Forensic Media Analysis TUI",
-        .version = "2.0.2",
+        .version = build_options.version,
         .kernel = &kernel,
     });
     defer dispatcher.deinit();

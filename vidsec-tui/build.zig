@@ -17,6 +17,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const ver_opts = b.addOptions();
+    ver_opts.addOption([]const u8, "version", @import("build.zig.zon").version);
+
     const tui_mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
@@ -27,6 +30,7 @@ pub fn build(b: *std.Build) void {
     tui_mod.addImport("parabellum_sdk", sdk_dep.module("parabellum_sdk"));
     tui_mod.addImport("tui_inbound", ext_dep.module("tui_inbound"));
     tui_mod.addImport("yaml_config", ext_dep.module("yaml_config"));
+    tui_mod.addOptions("build_options", ver_opts);
 
     const tui_lib = b.addLibrary(.{
         .linkage = .static,

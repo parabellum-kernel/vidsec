@@ -13,6 +13,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const ver_opts = b.addOptions();
+    ver_opts.addOption([]const u8, "version", @import("build.zig.zon").version);
+
     const cli_mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
@@ -21,6 +24,7 @@ pub fn build(b: *std.Build) void {
     });
     cli_mod.addImport("parabellum", engine_dep.module("parabellum"));
     cli_mod.addImport("parabellum_sdk", sdk_dep.module("parabellum_sdk"));
+    cli_mod.addOptions("build_options", ver_opts);
 
     const cli_lib = b.addLibrary(.{
         .linkage = .static,
