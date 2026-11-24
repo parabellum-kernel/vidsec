@@ -1,25 +1,20 @@
 .{
-    .name = .vidsec,
+    .name = .libvidsec,
     .version = "2.0.2",
     .minimum_zig_version = "0.17.1",
-    .fingerprint = 0xd659431e14e4c6b2,
+    .fingerprint = 0xe84862ff7084d2d2,
     .dependencies = .{
         .parabellum_sdk = .{
-            .path = "../sdk",
+            .path = "../../sdk",
         },
         .parabellum_libs = .{
-            .path = "../lib",
-        },
-        .parabellum_extensions = .{
-            .path = "../extension",
+            .path = "../../lib",
         },
     },
     .paths = .{
         "build.zig",
         "build.zig.zon",
         "src",
-        "configs",
         "tests",
-        "scripts",
     },
 }

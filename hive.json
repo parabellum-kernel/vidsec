@@ -1,164 +1,17 @@
 {
   "group": "org.parabellum.vidsec",
-  "name": "vidsec",
+  "name": "vidsec-workspace",
   "version": "2.0.2",
-  "artifacts": {
-    "analyzer": ["libanalyzer"],
-    "tui": ["libext_vidsec_tui"]
-  },
+  "modules": [
+    "libvidsec",
+    "vidsec-cli",
+    "vidsec-tui"
+  ],
   "repositories": [
     {
       "name": "local",
       "type": "local",
       "path": "~/.hive/packages"
     }
-  ],
-  "dependencies": {
-    "org.parabellum:engine": {
-      "version": "2.0.4",
-      "repo": "local"
-    },
-    "org.parabellum.drivers:memory": {
-      "version": "2.0.4",
-      "repo": "local"
-    },
-    "org.parabellum.drivers:file_store": {
-      "version": "2.0.4",
-      "repo": "local"
-    },
-    "org.parabellum.drivers:sqlite": {
-      "version": "2.0.4",
-      "repo": "local"
-    },
-    "org.parabellum.extensions:opentelemetry": {
-      "version": "2.0.4",
-      "repo": "local"
-    },
-    "org.parabellum.extensions:trace_jsonl": {
-      "version": "2.0.4",
-      "repo": "local"
-    },
-    "org.parabellum.extensions:tui_inbound": {
-      "version": "2.0.4",
-      "repo": "local"
-    },
-    "org.parabellum.extensions:yaml_config": {
-      "version": "2.0.4",
-      "repo": "local"
-    }
-  },
-  "abi": {
-    "required_symbols": [
-      "parabellum_module_manifest"
-    ]
-  },
-  "packaging": {
-    "default_format": "so",
-    "entrypoint": "libparabellum_engine.a",
-    "link_libs": ["c", "sqlite3"],
-    "packagers": {
-      "deb-pack": {
-        "mode": "sidecar",
-        "outputs": ["{input}.deb"],
-        "command": ["fpm", "-s", "dir", "-t", "deb", "-n", "vidsec", "-v", "2.0.2", "-p", "{input}.deb", "{input}"]
-      },
-      "rpm-pack": {
-        "mode": "sidecar",
-        "outputs": ["{input}.rpm"],
-        "command": ["fpm", "-s", "dir", "-t", "rpm", "-n", "vidsec", "-v", "2.0.2", "-p", "{input}.rpm", "{input}"]
-      },
-      "appimage-pack": {
-        "mode": "sidecar",
-        "outputs": ["{input}.AppImage"],
-        "command": ["appimagetool", "{input}", "{input}.AppImage"]
-      },
-      "flatpak-pack": {
-        "mode": "sidecar",
-        "outputs": ["{input}.flatpak"],
-        "command": ["flatpak", "build-bundle", "repo", "{input}.flatpak", "org.parabellum.VidSec"]
-      },
-      "dmg-pack": {
-        "mode": "sidecar",
-        "outputs": ["{input}.dmg"],
-        "command": ["hdiutil", "create", "-volname", "VidSec", "-srcfolder", "{input}", "-ov", "-format", "UDZO", "{input}.dmg"]
-      }
-    },
-    "profiles": {
-      "so-linux": {
-        "format": "so",
-        "target": "x86_64-linux-gnu",
-        "strip": true
-      },
-      "so-macos": {
-        "format": "so",
-        "target": "aarch64-macos",
-        "strip": true
-      },
-      "so-windows": {
-        "format": "so",
-        "target": "x86_64-windows-gnu",
-        "strip": true
-      },
-      "linux": {
-        "format": "bin",
-        "target": "x86_64-linux-gnu",
-        "strip": true
-      },
-      "macos": {
-        "format": "bin",
-        "target": "aarch64-macos",
-        "strip": true
-      },
-      "windows": {
-        "format": "bin",
-        "target": "x86_64-windows-gnu",
-        "strip": true
-      },
-      "deb": {
-        "format": "bin",
-        "target": "x86_64-linux-gnu",
-        "strip": true,
-        "packagers": ["deb-pack"]
-      },
-      "rpm": {
-        "format": "bin",
-        "target": "x86_64-linux-gnu",
-        "strip": true,
-        "packagers": ["rpm-pack"]
-      },
-      "appimage": {
-        "format": "bin",
-        "target": "x86_64-linux-gnu",
-        "strip": true,
-        "packagers": ["appimage-pack"]
-      },
-      "flatpak": {
-        "format": "bin",
-        "target": "x86_64-linux-gnu",
-        "strip": true,
-        "packagers": ["flatpak-pack"]
-      },
-      "dmg": {
-        "format": "bin",
-        "target": "aarch64-macos",
-        "strip": true,
-        "packagers": ["dmg-pack"]
-      },
-      "tar-linux": {
-        "format": "tar",
-        "target": "x86_64-linux-gnu",
-        "strip": true
-      },
-      "tar-macos": {
-        "format": "tar",
-        "target": "aarch64-macos",
-        "strip": true
-      },
-      "tar-windows": {
-        "format": "tar",
-        "target": "x86_64-windows-gnu",
-        "strip": true
-      }
-    }
-  }
+  ]
 }

@@ -182,5 +182,5 @@ pub const manifest = abi.defineManifestWithRequires(
 );
 
 comptime {
-    @export(&manifest, .{ .name = "parabellum_module_manifest", .linkage = .strong });
+    @export(&manifest, .{ .name = @import("plugin_options").manifest_symbol, .linkage = .strong });
 }

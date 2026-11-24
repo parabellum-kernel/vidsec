@@ -23,12 +23,10 @@ extensions:
   inbound_cli: {}
   vidsec_tui: {}
   opentelemetry:
-    file: "${OTEL_EXPORTER_FILE_PATH:-./configs/data/logs/otel_export.json}"
+    file: "${PARABELLUM_OTEL_FILE:-./configs/data/logs/otel_export.log}"
     console: "${OTEL_LOG_CONSOLE:-false}"
   trace_jsonl:
     file: "${PARABELLUM_TRACE_OUT:-./configs/data/logs/trace.jsonl}"
-
-capabilities: ./configs/capabilities.yaml
 
 datasources:
   pipeline_memory:
@@ -44,7 +42,7 @@ datasources:
   artifacts:
     driver: file_store
     role: sink
-    directory: "./artifacts/"
+    directory: "${VIDSEC_ARTIFACTS_DIR:-./artifacts/}"
 
   quarantine:
     driver: file_store

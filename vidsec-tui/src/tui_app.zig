@@ -5,7 +5,7 @@ const tui = @import("tui_inbound");
 const abi = sdk.abi;
 const inbound = sdk.transport.inbound;
 
-var transport_ctx_marker: u8 = 0;
+pub var transport_ctx_marker: u8 = 0;
 var global_event_ring = tui.EventRing{};
 var global_catalog_parsed: ?std.json.Parsed(sdk.capabilities.CapabilityCatalog) = null;
 var global_kernel: ?*abi.extension.KernelHandle_ABI = null;
@@ -600,7 +600,7 @@ fn onTelemetryEvent(_: *abi.extension.SubscriberCtx_ABI, ev: *const abi.Telemetr
     global_event_ring.pushAbiEvent(ev);
 }
 
-const telemetry_sub_vtable = abi.TelemetrySubscriberVTable_ABI{
+pub const telemetry_sub_vtable = abi.TelemetrySubscriberVTable_ABI{
     .on_event = onTelemetryEvent,
 };
 
@@ -957,16 +957,26 @@ fn vidsecTuiServe(
     host_dispatcher: *anyopaque,
     dispatch_fn: abi.extension.HostDispatchFn_ABI,
 ) callconv(.c) abi.HostError_ABI {
+    return vidsecTuiServeWithCatalog(null, host_dispatcher, dispatch_fn);
+}
+
+fn vidsecTuiServeWithCatalog(
+    catalog_opt: ?sdk.capabilities.CapabilityCatalog,
+    host_dispatcher: *anyopaque,
+    dispatch_fn: abi.extension.HostDispatchFn_ABI,
+) abi.HostError_ABI {
     const alloc = std.heap.c_allocator;
-    if (global_kernel) |k| {
-        if (global_api) |api| {
-            if (inbound.fetchCapabilityCatalog(alloc, k, api) catch null) |parsed| {
-                if (global_catalog_parsed) |*old| old.deinit();
-                global_catalog_parsed = parsed;
+    if (catalog_opt == null) {
+        if (global_kernel) |k| {
+            if (global_api) |api| {
+                if (inbound.fetchCapabilityCatalog(alloc, k, api) catch null) |parsed| {
+                    if (global_catalog_parsed) |*old| old.deinit();
+                    global_catalog_parsed = parsed;
+                }
             }
         }
     }
-    const catalog: sdk.capabilities.CapabilityCatalog = if (global_catalog_parsed) |cp|
+    const catalog: sdk.capabilities.CapabilityCatalog = catalog_opt orelse if (global_catalog_parsed) |cp|
         cp.value
     else
         .{
@@ -1025,41 +1035,15 @@ fn vidsecTuiServe(
     return .ok;
 }
 
-fn vidsecTuiDeinit(_: *abi.extension.TransportCtx_ABI) callconv(.c) void {
-    if (global_catalog_parsed) |*old| {
-        old.deinit();
-        global_catalog_parsed = null;
-    }
-}
-
-const vidsec_tui_vtable = abi.InboundTransportVTable_ABI{
-    .serve = vidsecTuiServe,
-    .deinit = vidsecTuiDeinit,
-};
-
-fn registerVidsecTui(kernel: *abi.extension.KernelHandle_ABI, api: *const abi.KernelApiVTable_ABI) anyerror!void {
-    global_kernel = kernel;
-    global_api = api;
-    if (inbound.fetchCapabilityCatalog(std.heap.c_allocator, kernel, api) catch null) |parsed| {
-        if (global_catalog_parsed) |*old| old.deinit();
-        global_catalog_parsed = parsed;
-    }
-    _ = api.subscribe_telemetry(kernel, @ptrCast(&transport_ctx_marker), &telemetry_sub_vtable);
-    const rc = api.register_inbound_transport(
-        kernel,
-        "vidsec_tui",
-        @ptrCast(&transport_ctx_marker),
-        &vidsec_tui_vtable,
-    );
-    if (rc != .ok) return error.RegisterInboundTransportFailed;
-}
-
-pub const manifest = sdk.extension.Extension.define(.{
-    .name = "vidsec_tui",
-    .version = .{ .major = 2, .minor = 0, .patch = 2 },
-    .register = registerVidsecTui,
-});
-
-comptime {
-    @export(&manifest, .{ .name = @import("plugin_options").manifest_symbol, .linkage = .strong });
+pub fn runDirect(
+    alloc: std.mem.Allocator,
+    catalog_opt: ?sdk.capabilities.CapabilityCatalog,
+    host_dispatcher: *anyopaque,
+    dispatch_fn: abi.extension.HostDispatchFn_ABI,
+    pipeline_path: []const u8,
+) u8 {
+    _ = alloc;
+    _ = pipeline_path;
+    const rc = vidsecTuiServeWithCatalog(catalog_opt, host_dispatcher, dispatch_fn);
+    return if (rc == .ok) 0 else 1;
 }
