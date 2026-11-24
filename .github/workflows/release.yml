@@ -2,9 +2,6 @@ name: Release VidSec Portable
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
 env:
   ZIG_VERSION: "0.17.1"
