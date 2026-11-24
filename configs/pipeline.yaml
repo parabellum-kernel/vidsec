@@ -193,20 +193,35 @@ pipelines:
           ebml_elements:
             datasource: pipeline_memory
 
-      - id: dissect_mkv_structures
-        uses: analyzer/dissect_mkv_structures
+      - id: dissect_mkv_summary
+        uses: analyzer/dissect_mkv_summary
         where: "triage_passed == true and detected_family == 'ebml' and ebml_valid == true"
         outputs:
           mkv_structures_summary:
             datasource: audit_db
             append:
               file_id: open_input_file.input_files.file_id
+
+      - id: dissect_mkv_tracks
+        uses: analyzer/dissect_mkv_tracks
+        where: "triage_passed == true and detected_family == 'ebml' and ebml_valid == true"
+        outputs:
           mkv_tracks:
             datasource: audit_db
             append:
               file_id: open_input_file.input_files.file_id
+
+      - id: dissect_mkv_cues
+        uses: analyzer/dissect_mkv_cues
+        where: "triage_passed == true and detected_family == 'ebml' and ebml_valid == true"
+        outputs:
           mkv_cues:
             datasource: pipeline_memory
+
+      - id: dissect_mkv_lacing_anomalies
+        uses: analyzer/dissect_mkv_lacing_anomalies
+        where: "triage_passed == true and detected_family == 'ebml' and ebml_valid == true"
+        outputs:
           mkv_lacing_anomalies:
             datasource: pipeline_memory
 

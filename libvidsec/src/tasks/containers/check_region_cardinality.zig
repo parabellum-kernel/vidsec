@@ -3,9 +3,9 @@ const Allocator = std.mem.Allocator;
 const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
 const orders = @import("../remediation/orders.zig");
-const dissect_isobmff = @import("dissect_isobmff.zig");
-const dissect_ebml = @import("dissect_ebml.zig");
-const dissect_riff = @import("dissect_riff.zig");
+const dissect_isobmff = @import("isobmff/dissect_isobmff.zig");
+const dissect_ebml = @import("ebml/dissect_ebml.zig");
+const dissect_riff = @import("riff/dissect_riff.zig");
 const remediation_encoder = @import("remediation_encoder.zig");
 
 pub const Inputs = struct {

@@ -12,25 +12,31 @@ pub const apply_truncate = @import("remediation/apply_truncate.zig");
 pub const apply_zero_out = @import("remediation/apply_zero_out.zig");
 pub const apply_quarantine = @import("remediation/apply_quarantine.zig");
 
-pub const lower_mp4_container = @import("containers/lower_mp4_container.zig");
-pub const lower_ebml_container = @import("containers/lower_ebml_container.zig");
-pub const lower_riff_container = @import("containers/lower_riff_container.zig");
+pub const lower_mp4_container = @import("containers/isobmff/lower_mp4_container.zig");
+pub const lower_ebml_container = @import("containers/ebml/lower_ebml_container.zig");
+pub const lower_riff_container = @import("containers/riff/lower_riff_container.zig");
 
-pub const dissect_isobmff = @import("containers/dissect_isobmff.zig");
-pub const dissect_mp4_atoms = @import("containers/dissect_mp4_atoms.zig");
-pub const dissect_ebml = @import("containers/dissect_ebml.zig");
-pub const dissect_mkv_structures = @import("containers/dissect_mkv_structures.zig");
-pub const dissect_riff = @import("containers/dissect_riff.zig");
+pub const dissect_isobmff = @import("containers/isobmff/dissect_isobmff.zig");
+pub const dissect_mp4_atoms = @import("containers/isobmff/dissect_mp4_atoms.zig");
+pub const dissect_ebml = @import("containers/ebml/dissect_ebml.zig");
+pub const dissect_mkv_summary = @import("containers/ebml/dissect_mkv_summary.zig");
+pub const dissect_mkv_tracks = @import("containers/ebml/dissect_mkv_tracks.zig");
+pub const dissect_mkv_cues = @import("containers/ebml/dissect_mkv_cues.zig");
+pub const dissect_mkv_lacing_anomalies = @import("containers/ebml/dissect_mkv_lacing_anomalies.zig");
+pub const dissect_riff = @import("containers/riff/dissect_riff.zig");
 pub const remediation_encoder = @import("containers/remediation_encoder.zig");
 pub const inspect_region_field = @import("containers/inspect_region_field.zig");
 pub const inspect_region_bits = @import("containers/inspect_region_bits.zig");
 pub const check_region_cardinality = @import("containers/check_region_cardinality.zig");
 pub const inspect_codec_bitstream = @import("containers/inspect_codec_bitstream.zig");
-pub const inspect_ebml_lacing = @import("containers/inspect_ebml_lacing.zig");
+pub const inspect_ebml_lacing = @import("containers/ebml/inspect_ebml_lacing.zig");
 
-pub const check_mp4_structure = @import("containers/check_mp4_structure.zig");
-pub const check_mkv_structure = @import("containers/check_mkv_structure.zig");
-pub const check_avi_structure = @import("containers/check_avi_structure.zig");
+pub const check_mp4_structure = @import("containers/isobmff/check_mp4_structure.zig");
+pub const check_ebml_elements = @import("containers/ebml/check_ebml_elements.zig");
+pub const check_mkv_tracks = @import("containers/ebml/check_mkv_tracks.zig");
+pub const check_mkv_cues = @import("containers/ebml/check_mkv_cues.zig");
+pub const check_mkv_lacing = @import("containers/ebml/check_mkv_lacing.zig");
+pub const check_avi_structure = @import("containers/riff/check_avi_structure.zig");
 
 pub const analyze_topology = @import("forensics/analyze_topology.zig");
 pub const check_r02_trailing_overlay = @import("forensics/check_r02_trailing_overlay.zig");

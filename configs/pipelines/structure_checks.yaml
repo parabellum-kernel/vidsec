@@ -14,12 +14,37 @@ pipelines:
             append:
               file_id: open_input_file.input_files.file_id
 
-      - id: check_mkv_structure
-        uses: analyzer/check_mkv_structure
+      - id: check_ebml_elements
+        uses: analyzer/check_ebml_elements
         where: "triage_passed == true and detected_family == 'ebml'"
         outputs:
-          mkv_structure_valid:
-            datasource: pipeline_memory
+          audit_findings:
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
+
+      - id: check_mkv_tracks
+        uses: analyzer/check_mkv_tracks
+        where: "triage_passed == true and detected_family == 'ebml'"
+        outputs:
+          audit_findings:
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
+
+      - id: check_mkv_cues
+        uses: analyzer/check_mkv_cues
+        where: "triage_passed == true and detected_family == 'ebml' and mkv_cues.__count__ > 0"
+        outputs:
+          audit_findings:
+            datasource: audit_db
+            append:
+              file_id: open_input_file.input_files.file_id
+
+      - id: check_mkv_lacing
+        uses: analyzer/check_mkv_lacing
+        where: "triage_passed == true and detected_family == 'ebml' and mkv_lacing_anomalies.__count__ > 0"
+        outputs:
           audit_findings:
             datasource: audit_db
             append:

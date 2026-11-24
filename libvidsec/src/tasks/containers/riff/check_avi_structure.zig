@@ -3,7 +3,7 @@ const Allocator = std.mem.Allocator;
 const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
 const dissect_riff = @import("dissect_riff.zig");
-const common = @import("common.zig");
+const common = @import("../common.zig");
 
 pub const Inputs = struct {
     riff_triage: dissect_riff.RiffTriageRow,

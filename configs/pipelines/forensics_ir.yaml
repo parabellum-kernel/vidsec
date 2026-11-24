@@ -8,9 +8,7 @@ pipelines:
         where: "triage_passed == true and detected_format > 0"
         outputs:
           ir_unreferenced_slack:
-            datasource: audit_db
-            append:
-              file_id: open_input_file.input_files.file_id
+            datasource: pipeline_memory
           audit_findings:
             datasource: audit_db
             append:

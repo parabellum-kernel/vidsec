@@ -24,7 +24,7 @@
   },
   "abi": {
     "required_symbols": [
-      "parabellum_module_manifest"
+      "parabellum_module_vidsec_manifest"
     ]
   },
   "packaging": {

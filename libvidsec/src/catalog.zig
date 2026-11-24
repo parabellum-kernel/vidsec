@@ -78,9 +78,21 @@ const tasks = [_]abi.abi.TaskDescriptor_ABI{
         .name = "dissect_ebml",
         .description = "Dissects EBML element hierarchy and containment bounds.",
     }),
-    container.defineTaskService(tasks_mod.dissect_mkv_structures.Service, .{
-        .name = "dissect_mkv_structures",
-        .description = "Dissects Matroska Tracks, Attachments, and Cluster blocks.",
+    container.defineTaskService(tasks_mod.dissect_mkv_summary.Service, .{
+        .name = "dissect_mkv_summary",
+        .description = "Dissects Matroska Segment, Tracks, Attachments, and Cluster summary metrics.",
+    }),
+    container.defineTaskService(tasks_mod.dissect_mkv_tracks.Service, .{
+        .name = "dissect_mkv_tracks",
+        .description = "Dissects Matroska TrackEntry records.",
+    }),
+    container.defineTaskService(tasks_mod.dissect_mkv_cues.Service, .{
+        .name = "dissect_mkv_cues",
+        .description = "Dissects Matroska CuePoint index entries.",
+    }),
+    container.defineTaskService(tasks_mod.dissect_mkv_lacing_anomalies.Service, .{
+        .name = "dissect_mkv_lacing_anomalies",
+        .description = "Dissects Matroska Cluster block lacing anomalies.",
     }),
     container.defineTaskService(tasks_mod.dissect_riff.Service, .{
         .name = "dissect_riff",
@@ -112,9 +124,21 @@ const tasks = [_]abi.abi.TaskDescriptor_ABI{
         .name = "check_mp4_structure",
         .description = "Validates ISOBMFF/MP4 box containment, recursion depth, sample tables (R04a), and codec headers (R09a).",
     }),
-    container.defineTaskService(tasks_mod.check_mkv_structure.Service, .{
-        .name = "check_mkv_structure",
-        .description = "Validates EBML/Matroska element containment, lacing, Cues bounds (R04), and TrackEntry invariants (R09).",
+    container.defineTaskService(tasks_mod.check_ebml_elements.Service, .{
+        .name = "check_ebml_elements",
+        .description = "Validates EBML header/Segment presence, element containment, depth, and unknown-size invariants (R03).",
+    }),
+    container.defineTaskService(tasks_mod.check_mkv_tracks.Service, .{
+        .name = "check_mkv_tracks",
+        .description = "Validates Matroska Tracks presence and TrackEntry invariants (R09).",
+    }),
+    container.defineTaskService(tasks_mod.check_mkv_cues.Service, .{
+        .name = "check_mkv_cues",
+        .description = "Validates Matroska CueClusterPosition Segment bounds (R04).",
+    }),
+    container.defineTaskService(tasks_mod.check_mkv_lacing.Service, .{
+        .name = "check_mkv_lacing",
+        .description = "Validates Matroska block lacing anomaly findings (R03).",
     }),
     container.defineTaskService(tasks_mod.check_avi_structure.Service, .{
         .name = "check_avi_structure",

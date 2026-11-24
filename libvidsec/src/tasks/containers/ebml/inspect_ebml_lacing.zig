@@ -3,10 +3,10 @@ const Allocator = std.mem.Allocator;
 const abi = @import("parabellum_sdk").task;
 const ebml = @import("ebml");
 const media_ir = @import("media_ir");
-const common = @import("common.zig");
-const orders = @import("../remediation/orders.zig");
+const common = @import("../common.zig");
+const orders = @import("../../remediation/orders.zig");
 const dissect_ebml = @import("dissect_ebml.zig");
-const remediation_encoder = @import("remediation_encoder.zig");
+const remediation_encoder = @import("../remediation_encoder.zig");
 
 pub const Inputs = struct {
     stream: abi.BoundedStreamReader,

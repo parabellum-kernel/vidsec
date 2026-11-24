@@ -4,7 +4,7 @@ const abi = @import("parabellum_sdk").task;
 const media_ir = @import("media_ir");
 const dissect_isobmff = @import("dissect_isobmff.zig");
 const dissect_mp4_atoms = @import("dissect_mp4_atoms.zig");
-const common = @import("common.zig");
+const common = @import("../common.zig");
 
 pub const Inputs = struct {
     isobmff_triage: dissect_isobmff.IsobmffTriageRow,

@@ -1,4 +1,6 @@
 const std = @import("std");
+const parabellum = @import("parabellum");
+const yaml_config = @import("yaml_config");
 const sdk = @import("parabellum_sdk");
 const tui = @import("tui_inbound");
 
@@ -111,13 +113,29 @@ const StepRecord = struct {
     }
 };
 
-const MAX_STEPS: usize = 64;
+const MAX_STEPS: usize = 128;
+
+const StepStageEntry = struct {
+    name: [64]u8 = undefined,
+    name_len: usize = 0,
+    stage: StageId = .forensics,
+
+    fn nameSlice(self: *const StepStageEntry) []const u8 {
+        return self.name[0..self.name_len];
+    }
+};
+
+const MAX_PIPELINE_ENTRIES: usize = 128;
 
 const PipelineMonitor = struct {
     mutex: std.Io.Mutex = .init,
     status: JobStatus = .idle,
     file_name: [128]u8 = undefined,
     file_name_len: usize = 0,
+    pipeline_path: [512]u8 = undefined,
+    pipeline_path_len: usize = 0,
+    step_map: [MAX_PIPELINE_ENTRIES]StepStageEntry = undefined,
+    step_map_count: usize = 0,
     trace_hex: [32]u8 = @splat('0'),
     has_trace: bool = false,
     pipeline_duration_ns: u64 = 0,
@@ -136,7 +154,67 @@ const PipelineMonitor = struct {
     error_msg: [192]u8 = undefined,
     error_msg_len: usize = 0,
 
+    fn setPipelinePath(self: *PipelineMonitor, path: []const u8) void {
+        self.mutex.lockUncancelable(std.Options.debug_io);
+        const n = @min(path.len, self.pipeline_path.len);
+        @memcpy(self.pipeline_path[0..n], path[0..n]);
+        self.pipeline_path_len = n;
+        self.mutex.unlock(std.Options.debug_io);
+        self.reloadPipelineLayout();
+    }
+
+    /// Loads step -> stage mappings dynamically from `pipeline.yaml` and its imports.
+    fn reloadPipelineLayout(self: *PipelineMonitor) void {
+        var path_buf: [512]u8 = undefined;
+        var path_len: usize = 0;
+        {
+            self.mutex.lockUncancelable(std.Options.debug_io);
+            defer self.mutex.unlock(std.Options.debug_io);
+            path_len = self.pipeline_path_len;
+            @memcpy(path_buf[0..path_len], self.pipeline_path[0..path_len]);
+        }
+        if (path_len == 0) return;
+
+        var arena = std.heap.ArenaAllocator.init(std.heap.c_allocator);
+        defer arena.deinit();
+        const alloc = arena.allocator();
+
+        var abi_builder = parabellum.config.builder_abi.AbiPipelineBuilder.init(alloc);
+        yaml_config.loadPipelineWithBuilder(
+            alloc,
+            path_buf[0..path_len],
+            abi_builder.handle(),
+            &parabellum.config.builder_abi.AbiPipelineBuilder.vtable,
+        ) catch return;
+        const ast = abi_builder.buildAst() catch return;
+
+        self.mutex.lockUncancelable(std.Options.debug_io);
+        defer self.mutex.unlock(std.Options.debug_io);
+        self.step_map_count = 0;
+        for (ast.pipelines) |p| {
+            for (p.steps) |s| {
+                if (self.step_map_count >= MAX_PIPELINE_ENTRIES) return;
+                const sid = s.id();
+                if (sid.len == 0) continue;
+                var entry = &self.step_map[self.step_map_count];
+                const n = @min(sid.len, entry.name.len);
+                @memcpy(entry.name[0..n], sid[0..n]);
+                entry.name_len = n;
+                entry.stage = classifyStepFromAst(p.name, s);
+                self.step_map_count += 1;
+            }
+        }
+    }
+
+    fn classify(self: *const PipelineMonitor, name: []const u8) StageId {
+        for (self.step_map[0..self.step_map_count]) |*entry| {
+            if (std.mem.eql(u8, entry.nameSlice(), name)) return entry.stage;
+        }
+        return classifyStepFallback(name);
+    }
+
     fn resetForFile(self: *PipelineMonitor, path: []const u8) void {
+        self.reloadPipelineLayout();
         self.mutex.lockUncancelable(std.Options.debug_io);
         defer self.mutex.unlock(std.Options.debug_io);
 
@@ -171,7 +249,7 @@ const PipelineMonitor = struct {
         const rec = &self.steps[self.step_count];
         rec.* = .{};
         rec.setName(name);
-        rec.stage = classifyStep(name);
+        rec.stage = self.classify(name);
         self.step_count += 1;
         return rec;
     }
@@ -230,7 +308,7 @@ const PipelineMonitor = struct {
                     };
                 },
                 .step_start => {
-                    const st = classifyStep(primary);
+                    const st = self.classify(primary);
                     self.stages[@intFromEnum(st)].active +|= 1;
                     self.stages[@intFromEnum(st)].setLastStep(primary);
                     if (self.findOrAddStep(primary)) |rec| {
@@ -239,7 +317,7 @@ const PipelineMonitor = struct {
                     }
                 },
                 .step_end => {
-                    const st = classifyStep(primary);
+                    const st = self.classify(primary);
                     const s = &self.stages[@intFromEnum(st)];
                     if (s.active > 0) s.active -= 1;
                     s.total_ns +|= ev.duration_ns;
@@ -428,18 +506,15 @@ const PipelineMonitor = struct {
         else
             0;
 
-        // Build virtual lines for the full stage-grouped task DAG
+        // Build virtual lines for the full stage-grouped task DAG (always show all stages)
         var total_vlines: usize = 0;
         inline for (0..StageId.count) |si| {
             const st_id: StageId = @enumFromInt(si);
-            const st = snap.stages[si];
             var stage_steps: usize = 0;
             for (snap.steps[0..snap.step_count]) |step| {
                 if (step.stage == st_id) stage_steps += 1;
             }
-            if (snap.step_count == 0 or stage_steps > 0 or st.active > 0 or st.ok > 0 or st.err > 0) {
-                total_vlines += 1 + stage_steps;
-            }
+            total_vlines += 1 + stage_steps;
         }
 
         const max_scroll = if (total_vlines > body_h) total_vlines - body_h else 0;
@@ -453,7 +528,7 @@ const PipelineMonitor = struct {
             for (snap.steps[0..snap.step_count]) |step| {
                 if (step.stage == st_id) stage_steps += 1;
             }
-            if (snap.step_count == 0 or stage_steps > 0 or st.active > 0 or st.ok > 0 or st.err > 0) {
+            {
                 if (vline >= eff_scroll and vline - eff_scroll < body_h) {
                     const ly: u16 = body_top + @as(u16, @intCast(vline - eff_scroll));
                     const st_style: tui.Style = if (st.err > 0)
@@ -562,7 +637,41 @@ const PipelineMonitorSnapshot = struct {
 
 var global_monitor = PipelineMonitor{};
 
-fn classifyStep(step_name: []const u8) StageId {
+fn classifyStepFromAst(pipeline_name: []const u8, step: parabellum.ast.StepNode) StageId {
+    if (std.mem.eql(u8, pipeline_name, "ingest")) return .ingest;
+    if (std.mem.eql(u8, pipeline_name, "structure_checks") or
+        std.mem.startsWith(u8, pipeline_name, "cve_")) return .checks;
+    if (std.mem.eql(u8, pipeline_name, "forensics_ir") or
+        std.mem.eql(u8, pipeline_name, "attachments")) return .forensics;
+
+    switch (step) {
+        .task => |t| {
+            if (std.mem.eql(u8, t.module, "fs")) return .ingest;
+            if (std.mem.startsWith(u8, t.task, "dissect_")) return .dissect;
+            if (std.mem.startsWith(u8, t.task, "lower_")) return .lower;
+            if (std.mem.startsWith(u8, t.task, "apply_")) return .cdr;
+            if (std.mem.startsWith(u8, t.task, "analyze_")) return .forensics;
+            if (std.mem.startsWith(u8, t.task, "inspect_") or
+                std.mem.startsWith(u8, t.task, "check_region_")) return .checks;
+            if (std.mem.startsWith(u8, t.task, "check_mp4_") or
+                std.mem.startsWith(u8, t.task, "check_mkv_") or
+                std.mem.startsWith(u8, t.task, "check_avi_")) return .checks;
+            if (std.mem.startsWith(u8, t.task, "check_r") or
+                std.mem.startsWith(u8, t.task, "check_inconsistencies") or
+                std.mem.startsWith(u8, t.task, "scan_entropy")) return .forensics;
+            if (std.mem.startsWith(u8, t.task, "check_file_size") or
+                std.mem.startsWith(u8, t.task, "detect_magic") or
+                std.mem.startsWith(u8, t.task, "check_extension") or
+                std.mem.startsWith(u8, t.task, "scan_") or
+                std.mem.startsWith(u8, t.task, "measure_") or
+                std.mem.startsWith(u8, t.task, "evaluate_triage")) return .triage;
+        },
+        .router => return .ingest,
+    }
+    return classifyStepFallback(step.id());
+}
+
+fn classifyStepFallback(step_name: []const u8) StageId {
     if (std.mem.eql(u8, step_name, "open_input_file")) return .ingest;
     if (std.mem.startsWith(u8, step_name, "stage0_")) return .triage;
     if (std.mem.startsWith(u8, step_name, "dissect_")) return .dissect;
@@ -1043,7 +1152,7 @@ pub fn runDirect(
     pipeline_path: []const u8,
 ) u8 {
     _ = alloc;
-    _ = pipeline_path;
+    global_monitor.setPipelinePath(pipeline_path);
     const rc = vidsecTuiServeWithCatalog(catalog_opt, host_dispatcher, dispatch_fn);
     return if (rc == .ok) 0 else 1;
 }

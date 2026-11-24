@@ -2,7 +2,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const abi = @import("parabellum_sdk").task;
 const ebml = @import("ebml");
-const common = @import("common.zig");
+const common = @import("../common.zig");
 
 pub const Inputs = struct {
     stream: abi.BoundedStreamReader,

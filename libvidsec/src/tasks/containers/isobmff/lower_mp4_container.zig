@@ -2,7 +2,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const isobmff = @import("isobmff");
 const media_ir = @import("media_ir");
-const common = @import("common.zig");
+const common = @import("../common.zig");
 
 pub const Inputs = common.ContainerInputs;
 pub const Outputs = common.ContainerOutputs;

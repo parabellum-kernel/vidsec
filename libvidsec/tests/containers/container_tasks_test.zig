@@ -8,7 +8,10 @@ const lower_riff = vidsec.tasks.lower_riff_container;
 const dissect_isobmff = vidsec.tasks.dissect_isobmff;
 const dissect_mp4_atoms = vidsec.tasks.dissect_mp4_atoms;
 const dissect_ebml = vidsec.tasks.dissect_ebml;
-const dissect_mkv_structures = vidsec.tasks.dissect_mkv_structures;
+const dissect_mkv_summary = vidsec.tasks.dissect_mkv_summary;
+const dissect_mkv_tracks = vidsec.tasks.dissect_mkv_tracks;
+const dissect_mkv_cues = vidsec.tasks.dissect_mkv_cues;
+const dissect_mkv_lacing_anomalies = vidsec.tasks.dissect_mkv_lacing_anomalies;
 const dissect_riff = vidsec.tasks.dissect_riff;
 const inspect_region_field = vidsec.tasks.inspect_region_field;
 const inspect_region_bits = vidsec.tasks.inspect_region_bits;
@@ -16,7 +19,10 @@ const check_region_cardinality = vidsec.tasks.check_region_cardinality;
 const inspect_codec_bitstream = vidsec.tasks.inspect_codec_bitstream;
 const inspect_ebml_lacing = vidsec.tasks.inspect_ebml_lacing;
 const check_mp4_structure = vidsec.tasks.check_mp4_structure;
-const check_mkv_structure = vidsec.tasks.check_mkv_structure;
+const check_ebml_elements = vidsec.tasks.check_ebml_elements;
+const check_mkv_tracks = vidsec.tasks.check_mkv_tracks;
+const check_mkv_cues = vidsec.tasks.check_mkv_cues;
+const check_mkv_lacing = vidsec.tasks.check_mkv_lacing;
 const check_avi_structure = vidsec.tasks.check_avi_structure;
 
 const SliceStreamHost = struct {
@@ -245,7 +251,7 @@ test "inspect_region_field validates typed scalar bounds" {
     try std.testing.expectEqualStrings("cve_box_size_limit", bad_out.audit_findings[0].rule_id);
 }
 
-test "dissect_ebml + dissect_mkv_structures are pure and check_mkv_structure validates R03/R04/R09" {
+test "dissect_ebml + atomic dissect_mkv_* are pure and check_mkv_structure validates R03/R04/R09" {
     const data =
         "\x1A\x45\xDF\xA3\x84\x42\x86\x81\x01" ++
         "\x18\x53\x80\x67\x8A" ++
@@ -264,27 +270,60 @@ test "dissect_ebml + dissect_mkv_structures are pure and check_mkv_structure val
     try std.testing.expect(hdr_out.ebml_triage.ebml_valid);
     try std.testing.expect(!@hasField(@TypeOf(hdr_out), "audit_findings"));
 
-    const trk_out = (try (dissect_mkv_structures.Service{}).execute(arena.allocator(), .{
+    const sum_out = (try (dissect_mkv_summary.Service{}).execute(arena.allocator(), .{
         .stream = host.reader(),
+        .ebml_elements = hdr_out.ebml_elements,
     })).data;
-    try std.testing.expect(!trk_out.mkv_structures_summary.mkv_valid);
+    try std.testing.expect(!sum_out.mkv_structures_summary.mkv_valid);
+    try std.testing.expect(!@hasField(@TypeOf(sum_out), "audit_findings"));
+
+    const trk_out = (try (dissect_mkv_tracks.Service{}).execute(arena.allocator(), .{
+        .stream = host.reader(),
+        .ebml_elements = hdr_out.ebml_elements,
+    })).data;
     try std.testing.expect(!@hasField(@TypeOf(trk_out), "audit_findings"));
 
-    const chk = (try (check_mkv_structure.Service{}).execute(arena.allocator(), .{
+    const cues_out = (try (dissect_mkv_cues.Service{}).execute(arena.allocator(), .{
+        .stream = host.reader(),
+        .ebml_elements = hdr_out.ebml_elements,
+    })).data;
+    try std.testing.expectEqual(@as(usize, 0), cues_out.mkv_cues.len);
+    try std.testing.expect(!@hasField(@TypeOf(cues_out), "audit_findings"));
+
+    const lacing_out = (try (dissect_mkv_lacing_anomalies.Service{}).execute(arena.allocator(), .{
+        .stream = host.reader(),
+        .ebml_elements = hdr_out.ebml_elements,
+    })).data;
+    try std.testing.expectEqual(@as(usize, 0), lacing_out.mkv_lacing_anomalies.len);
+    try std.testing.expect(!@hasField(@TypeOf(lacing_out), "audit_findings"));
+
+    const ebml_chk = (try (check_ebml_elements.Service{}).execute(arena.allocator(), .{
         .ebml_triage = hdr_out.ebml_triage,
         .ebml_elements = hdr_out.ebml_elements,
-        .mkv_structures_summary = trk_out.mkv_structures_summary,
+    })).data;
+    try std.testing.expectEqual(@as(usize, 0), ebml_chk.audit_findings.len);
+
+    const trk_chk = (try (check_mkv_tracks.Service{}).execute(arena.allocator(), .{
+        .mkv_structures_summary = sum_out.mkv_structures_summary,
         .mkv_tracks = trk_out.mkv_tracks,
+    })).data;
+    const cue_chk = (try (check_mkv_cues.Service{}).execute(arena.allocator(), .{
         .mkv_cues = &.{.{ .cue_time = 0, .track_number = 1, .cluster_position = 99999, .in_segment_bounds = false }},
+    })).data;
+    const lac_chk = (try (check_mkv_lacing.Service{}).execute(arena.allocator(), .{
         .mkv_lacing_anomalies = &.{.{ .offset = 100, .lacing_kind = 1, .frame_count = 10, .payload_size = 4 }},
     })).data;
-    try std.testing.expect(!chk.mkv_structure_valid);
+
     var saw_missing_tracks = false;
     var saw_cue = false;
     var saw_lacing = false;
-    for (chk.audit_findings) |f| {
+    for (trk_chk.audit_findings) |f| {
         if (std.mem.eql(u8, f.rule_id, "segment_missing_tracks")) saw_missing_tracks = true;
+    }
+    for (cue_chk.audit_findings) |f| {
         if (std.mem.eql(u8, f.rule_id, "mkv_cue_out_of_segment_bounds")) saw_cue = true;
+    }
+    for (lac_chk.audit_findings) |f| {
         if (std.mem.eql(u8, f.rule_id, "mkv_invalid_lacing")) saw_lacing = true;
     }
     try std.testing.expect(saw_missing_tracks and saw_cue and saw_lacing);
