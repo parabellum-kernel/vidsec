@@ -17,10 +17,22 @@ if [ -f "$VIDSEC_ROOT/configs/.env" ]; then
     set +a
 fi
 
-# Ensure plugin directory points to vidsec's locally compiled drivers & extensions
-export PARABELLUM_PLUGIN_DIR="${PARABELLUM_PLUGIN_DIR:-$VIDSEC_ROOT/zig-out/lib}"
+# Ensure plugin directory points to packaged lib/ or vidsec's locally compiled drivers & extensions
+if [ -z "${PARABELLUM_PLUGIN_DIR:-}" ]; then
+    if [ -d "$VIDSEC_ROOT/lib" ]; then
+        export PARABELLUM_PLUGIN_DIR="$VIDSEC_ROOT/lib"
+    else
+        export PARABELLUM_PLUGIN_DIR="$VIDSEC_ROOT/zig-out/lib"
+    fi
+fi
 
-ENGINE_BIN="${PARABELLUM_ENGINE_BIN:-$VIDSEC_ROOT/../engine/zig-out/bin/parabellum-engine}"
+if [ -n "${PARABELLUM_ENGINE_BIN:-}" ]; then
+    ENGINE_BIN="$PARABELLUM_ENGINE_BIN"
+elif [ -x "$VIDSEC_ROOT/bin/parabellum-engine" ]; then
+    ENGINE_BIN="$VIDSEC_ROOT/bin/parabellum-engine"
+else
+    ENGINE_BIN="$VIDSEC_ROOT/../engine/zig-out/bin/parabellum-engine"
+fi
 PIPELINE="${PIPELINE_PATH:-$VIDSEC_ROOT/configs/pipeline.yaml}"
 
 cd "$VIDSEC_ROOT"

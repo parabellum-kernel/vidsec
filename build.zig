@@ -123,5 +123,15 @@ pub fn addPluginSharedLib(
         .root_module = plugin_mod,
     });
     b.installArtifact(lib);
+
+    const static_lib = b.addLibrary(.{
+        .linkage = .static,
+        .name = name,
+        .version = version,
+        .root_module = plugin_mod,
+    });
+    static_lib.bundle_compiler_rt = false;
+    b.installArtifact(static_lib);
+
     return lib;
 }
